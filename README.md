@@ -7,15 +7,15 @@
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/statlib?label=PyPI%20stats&color=blue)](https://pypi.org/project/statlib)
 
 
-To install run the code:
+### To install run the code:
 ```bash
 pip install statlib
 ```
 
-Pre-Alpha dev status.
+## Pre-Alpha dev status.
 
 
-TODO:
+### TODO:
 
 -Kruskal-Wallis test - add Dunn's multiple comparisons
 -Anova: add 2-way anova and 3-way(?)
