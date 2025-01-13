@@ -9,7 +9,7 @@
 
 ### To install run the code:
 ```bash
-pip install AutoStatLib
+pip install autostatlib
 ```
 
 
