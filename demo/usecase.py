@@ -24,7 +24,7 @@ popmean = 0        # population mean - only for single-sample tests needed
 
 # %%# initiate the analysis
 analysis = statlib.StatisticalAnalysis(
-    data, paired=paired, tails=tails, popmean=0)
+    data, paired=paired, tails=tails, popmean=popmean)
 
 # %%# Preform auto-selected test
 analysis.RunAuto()
@@ -36,7 +36,7 @@ analysis.RunAuto()
 # analysis.RunTtest()
 # analysis.RunMannWhitney()
 
-# # 2 groups paired
+# # 2 groups paired"
 # analysis.RunTtestPaired()
 # analysis.RunWilcoxon()
 
@@ -47,7 +47,7 @@ analysis.RunAuto()
 # # 3 and more paired groups comparison:
 # analysis.RunFriedman()
 
-# # single group test
+# # single group tests"
 # analysis.RunTtestSingleSample()
 # analysis.RunWilcoxonSingleSample()
 
