@@ -1,4 +1,4 @@
-# AutoStatLib - a simple statistical analysis library
+# AutoStatLib - automated statistical analysis library
 
 [![pypi_version](https://img.shields.io/pypi/v/AutoStatLib?label=PyPI&color=green)](https://pypi.org/project/AutoStatLib)
 [![GitHub Release](https://img.shields.io/github/v/release/konung-yaropolk/AutoStatLib?label=GitHub&color=green&link=https%3A%2F%2Fgithub.com%2Fkonung-yaropolk%2FDiaModality)](https://github.com/konung-yaropolk/AutoStatLib)
