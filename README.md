@@ -72,10 +72,10 @@ analysis.RunWilcoxonSingleSample()
 ```
 
 Test summary will be printed to the console.
-You can also get it as a python string via GetSummary() method.
+You can also get it as a python string via *GetSummary()* method.
 
 ---
-Test results are accessible as a dictionary via GetResult() method:
+Test results are accessible as a dictionary via *GetResult()* method:
 ```python
 results = analysis.GetResult()
 ```
@@ -105,7 +105,7 @@ The results dictionary keys with representing value types:
                                            (taken from the input)
 }
 ```
-If errors occured, GetResult() returns an empty dictionary
+If errors occured, *GetResult()* returns an empty dictionary
 
 
 
