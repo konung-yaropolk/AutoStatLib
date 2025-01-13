@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import statlib
+import AutoStatLib
 
 
 # Example usage:
@@ -23,7 +23,7 @@ tails = 2        # two-tailed or one-tailed result
 popmean = 0        # population mean - only for single-sample tests needed
 
 # %%# initiate the analysis
-analysis = statlib.StatisticalAnalysis(
+analysis = AutoStatLib.StatisticalAnalysis(
     data, paired=paired, tails=tails, popmean=popmean)
 
 # %%# Preform auto-selected test

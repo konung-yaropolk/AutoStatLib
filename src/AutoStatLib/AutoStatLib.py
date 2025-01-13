@@ -1,5 +1,4 @@
 import numpy as np
-# import scipy.stats as stats
 from scipy.stats import ttest_rel, ttest_ind, ttest_1samp, wilcoxon, mannwhitneyu, f_oneway, kruskal, friedmanchisquare, shapiro, norm
 
 

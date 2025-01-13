@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from .statlib import StatisticalAnalysis
+from .AutoStatLib import StatisticalAnalysis
 from ._version import __version__
 
 if __name__ == '__main__':

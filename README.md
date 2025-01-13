@@ -1,15 +1,15 @@
-# statlib - a simple statistical analysis library
+# AutoStatLib - a simple statistical analysis library
 
-[![pypi_version](https://img.shields.io/pypi/v/statlib?label=PyPI&color=green)](https://pypi.org/project/statlib)
-[![GitHub Release](https://img.shields.io/github/v/release/konung-yaropolk/statlib?label=GitHub&color=green&link=https%3A%2F%2Fgithub.com%2Fkonung-yaropolk%2FDiaModality)](https://github.com/konung-yaropolk/statlib)
-[![PyPI - License](https://img.shields.io/pypi/l/statlib)](https://pypi.org/project/statlib)
-[![Python](https://img.shields.io/badge/Python-v3.10%5E-green?logo=python)](https://pypi.org/project/statlib)  
-[![PyPI - Downloads](https://img.shields.io/pypi/dm/statlib?label=PyPI%20stats&color=blue)](https://pypi.org/project/statlib)
+[![pypi_version](https://img.shields.io/pypi/v/AutoStatLib?label=PyPI&color=green)](https://pypi.org/project/AutoStatLib)
+[![GitHub Release](https://img.shields.io/github/v/release/konung-yaropolk/AutoStatLib?label=GitHub&color=green&link=https%3A%2F%2Fgithub.com%2Fkonung-yaropolk%2FDiaModality)](https://github.com/konung-yaropolk/AutoStatLib)
+[![PyPI - License](https://img.shields.io/pypi/l/AutoStatLib)](https://pypi.org/project/AutoStatLib)
+[![Python](https://img.shields.io/badge/Python-v3.10%5E-green?logo=python)](https://pypi.org/project/AutoStatLib)  
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/AutoStatLib?label=PyPI%20stats&color=blue)](https://pypi.org/project/AutoStatLib)
 
 
 ### To install run the code:
 ```bash
-pip install statlib
+pip install AutoStatLib
 ```
 
 
@@ -20,7 +20,7 @@ use the following example:
 
 ```python
 import numpy as np
-import statlib
+import AutoStatLib
 
 # generate random data:
 groups = 2
@@ -40,7 +40,7 @@ tails = 2          # two-tailed or one-tailed result
 popmean = 0        # population mean - only for single-sample tests needed
 
 # initiate the analysis
-analysis = statlib.StatisticalAnalysis(
+analysis = AutoStatLib.StatisticalAnalysis(
     data_norm, paired=paired, tails=tails, popmean=popmean)
 ```
 
