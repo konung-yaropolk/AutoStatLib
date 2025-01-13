@@ -323,6 +323,7 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
                  tails=2,
                  popmean=None,
                  verbose=True):
+        self.results = None
         self.groups_list = groups_list
         self.paired = paired
         self.tails = tails
@@ -533,14 +534,18 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
         self.__run_test(test='wilcoxon')
 
     def GetResult(self):
-        try:
+        if self.results: 
             return self.results
-        except AttributeError as error:
-            print(error)
-            return {}
+        else:
+            self.__run_test(test='auto')
+            return self.results
 
     def GetSummary(self):
-        return self.summary
+        if self.results: 
+            return self.summary
+        else:
+            self.__run_test(test='auto')
+            return self.summary
 
     def PrintSummary(self):
         print(self.summary)
