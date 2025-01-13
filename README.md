@@ -7,7 +7,7 @@
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/AutoStatLib?label=PyPI%20stats&color=blue)](https://pypi.org/project/AutoStatLib)
 
 
-### To install run the code:
+### To install run the command:
 ```bash
 pip install autostatlib
 ```
