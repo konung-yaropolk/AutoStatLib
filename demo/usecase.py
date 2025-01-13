@@ -40,11 +40,11 @@ analysis.RunAuto()
 # analysis.RunTtestPaired()
 # analysis.RunWilcoxon()
 
-# # 3 and more indepennded groups comparison:
+# # 3 and more independed groups comparison:
 # analysis.RunAnova()
 # analysis.RunKruskalWallis()
 
-# # 3 and more paired groups comparison:
+# # 3 and more depended groups comparison:
 # analysis.RunFriedman()
 
 # # single group tests"
