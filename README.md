@@ -1,16 +1,15 @@
 # AutoStatLib - a simple statistical analysis library
 
 [![pypi_version](https://img.shields.io/pypi/v/AutoStatLib?label=PyPI&color=green)](https://pypi.org/project/AutoStatLib)
-[![GitHub Release](https://img.shields.io/github/v/release/konung-yaropolk/AutoStatLib?label=GitHub&color=green&link=https%3A%2F%2Fgithub.com%2Fkonung-yaropolk%2FDiaModality)]
-(https://github.com/konung-yaropolk/AutoStatLib)
+[![GitHub Release](https://img.shields.io/github/v/release/konung-yaropolk/AutoStatLib?label=GitHub&color=green&link=https%3A%2F%2Fgithub.com%2Fkonung-yaropolk%2FDiaModality)](https://github.com/konung-yaropolk/AutoStatLib)
 [![PyPI - License](https://img.shields.io/pypi/l/AutoStatLib)](https://pypi.org/project/AutoStatLib)
 [![Python](https://img.shields.io/badge/Python-v3.10%5E-green?logo=python)](https://pypi.org/project/AutoStatLib)  
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/AutoStatLib?label=PyPI%20stats&color=blue)](https://pypi.org/project/AutoStatLib)
 
 
-### To install package run the command:
+### To install run the code:
 ```bash
-pip install autostatlib
+pip install AutoStatLib
 ```
 
 
