@@ -1,5 +1,6 @@
 A simple statistical analysis library
 
+
 To install the stats module run in the current directory:
 pip install statlib
 
