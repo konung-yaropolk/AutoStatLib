@@ -13,7 +13,7 @@ pip install AutoStatLib
 ```
 
 
-### Example of use:
+### Example use case:
 See the /demo directory on Git repo or  
 use the following example:
 
@@ -44,12 +44,12 @@ analysis = AutoStatLib.StatisticalAnalysis(
     data_norm, paired=paired, tails=tails, popmean=popmean)
 ```
 
-now you can preform automatically statistical test selection:
+now you can preform automated statistical test selection:
 ```python
 analysis.RunAuto()
 ```
 
-ih the other hand you can reform scecific tests:
+or you can choose specific tests:
 ```python
 # 2 groups independend:
 analysis.RunTtest()

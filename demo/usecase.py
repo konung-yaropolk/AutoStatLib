@@ -30,7 +30,7 @@ analysis = AutoStatLib.StatisticalAnalysis(
 analysis.RunAuto()
 
 
-# %%# Preform scecific tests:
+# %%# Preform specific tests:
 
 # # 2 groups independend:
 # analysis.RunTtest()
