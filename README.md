@@ -105,6 +105,7 @@ The results dictionary keys with representing value types:
                                            (taken from the input)
 }
 ```
+If errors occured, GetResult() returns an empty dictionary
 
 
 

@@ -323,6 +323,7 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
                  popmean=None,
                  verbose=True):
         self.results = None
+        self.error = False
         self.groups_list = groups_list
         self.paired = paired
         self.tails = tails
@@ -357,6 +358,7 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
 
         # reset values from previous tests
         self.results = None
+        self.error = False
         self.warnings = []
         self.normals = []
         self.methods = []
@@ -408,6 +410,7 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
             self.log('\nTest  :', test)
             self.log('Error :', error)
             self.log('-'*67 + '\n')
+            self.error = True
             print(self.summary)
             return
 
@@ -533,17 +536,20 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
         self.__run_test(test='wilcoxon')
 
     def GetResult(self):
-        if self.results: 
-            return self.results
-        else:
+        if not self.results and not self.error: 
             self.__run_test(test='auto')
+            return self.results
+        if not self.results and self.error: 
+            print('Error occured, no results to output')
+            return {}
+        else:
             return self.results
 
     def GetSummary(self):
-        if self.results: 
+        if not self.results and not self.error: 
+            self.__run_test(test='auto')
             return self.summary
         else:
-            self.__run_test(test='auto')
             return self.summary
 
     def PrintSummary(self):
