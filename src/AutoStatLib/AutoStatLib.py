@@ -1,5 +1,6 @@
 import numpy as np
-from scipy.stats import ttest_rel, ttest_ind, ttest_1samp, wilcoxon, mannwhitneyu, f_oneway, kruskal, friedmanchisquare, shapiro, norm
+from statsmodels.stats.diagnostic import lilliefors
+from scipy.stats import ttest_rel, ttest_ind, ttest_1samp, wilcoxon, mannwhitneyu, f_oneway, kruskal, friedmanchisquare, shapiro, kstest, anderson, normaltest
 
 
 class __StatisticalTests():
@@ -9,8 +10,9 @@ class __StatisticalTests():
 
     def anova(self):
         stat, p_value = f_oneway(*self.data)
-        if self.tails == 1 and p_value > 0.5:
-            p_value /= 2
+        self.tails = 2
+        # if self.tails == 1 and p_value > 0.5:
+        #     p_value /= 2
         # if self.tails == 1:
         #     p_value /= 2
         self.test_name = 'ANOVA'
@@ -21,6 +23,7 @@ class __StatisticalTests():
 
     def friedman_test(self):
         stat, p_value = friedmanchisquare(*self.data)
+        self.tails = 2
         self.test_name = 'Friedman test'
         self.test_id = 'friedman'
         self.paired = True
@@ -37,9 +40,16 @@ class __StatisticalTests():
 
     def mann_whitney_u_test(self):
         stat, p_value = mannwhitneyu(
-            self.data[0], self.data[1], alternative='two-sided' if self.tails == 2 else 'greater')
-        # if self.tails == 1:
-        #     p_value /= 2
+            self.data[0], self.data[1], alternative='two-sided')
+        if self.tails == 1:
+            p_value /= 2
+        # alternative method of one-tailed calculation
+        # gives the same result:
+        # stat, p_value = mannwhitneyu(
+        #     self.data[0], self.data[1], alternative='two-sided' if self.tails == 2 else 'less')
+        # if self.tails == 1 and p_value > 0.5:
+        #     p_value = 1-p_value
+
         self.test_name = 'Mann-Whitney U test'
         self.test_id = 'mann_whitney'
         self.paired = False
@@ -49,10 +59,8 @@ class __StatisticalTests():
     def t_test_independend(self):
         t_stat, t_p_value = ttest_ind(
             self.data[0], self.data[1])
-
         if self.tails == 1:
             t_p_value /= 2
-
         self.test_name = 't-test for independend samples'
         self.test_id = 't_test_independend'
         self.paired = False
@@ -62,10 +70,8 @@ class __StatisticalTests():
     def t_test_paired(self):
         t_stat, t_p_value = ttest_rel(
             self.data[0], self.data[1])
-
         if self.tails == 1:
             t_p_value /= 2
-
         self.test_name = 't-test for paired samples'
         self.test_id = 't_test_paired'
         self.paired = True
@@ -79,7 +85,6 @@ class __StatisticalTests():
         t_stat, t_p_value = ttest_1samp(self.data[0], self.popmean)
         if self.tails == 1:
             t_p_value /= 2
-
         self.test_name = 'Single-sample t-test'
         self.test_id = 't_test_single_sample'
         self.paired = False
@@ -94,7 +99,6 @@ class __StatisticalTests():
         w_stat, w_p_value = wilcoxon(data)
         if self.tails == 1:
             p_value /= 2
-
         self.test_name = 'Wilcoxon signed-rank test for single sample'
         self.test_id = 'wilcoxon_single_sample'
         self.paired = False
@@ -115,48 +119,82 @@ class __StatisticalTests():
 class __NormalityTests():
     '''
         Normality tests mixin
+
+        see the article about minimum sample size for tests:
+        Power comparisons of Shapiro-Wilk, Kolmogorov-Smirnov,
+        Lilliefors and Anderson-Darling tests, Nornadiah Mohd Razali1, Yap Bee Wah1
     '''
 
     def check_normality(self, data):
-        # Shapiro-Wilk Test
+        sw = None
+        lf = None
+        ad = None
+        ap = None
+        n = len(data)
+
+        # Shapiro-Wilk test
         sw_stat, sw_p_value = shapiro(data)
         if sw_p_value > 0.05:
-            return True, 'Shapiro-Wilk'
+            sw = True
+        else:
+            sw = False
 
-        # Lilliefors Test (Kolmogorov-Smirnov test)
-        lilliefors_stat, lilliefors_p_value = self.lilliefors_test(data)
-        if lilliefors_p_value > 0.05:
-            return True, 'Lilliefors'
+        # Lilliefors test
+        lf_stat, lf_p_value = lilliefors(
+            data, dist='norm')
+        if lf_p_value > 0.05:
+            lf = True
+        else:
+            lf = False
 
-        return False, 'Not normal'
+        # Anderson-Darling test
+        ad_stat, ad_p_value = self.anderson_get_p(
+            data, dist='norm')
+        if ad_p_value > 0.05 and n >= 20:
+            ad = True
+        elif ad_p_value <= 0.05 and n >= 20:
+            ad = False
 
-    def lilliefors_test(self, data):
-        ''' Lilliefors Test (Kolmogorov-Smirnov test) '''
-        data = np.sort(data)
+        # D'Agostino-Pearson test
+        ap_stat, ap_p_value = normaltest(data)
+        # test result is skewed if n<20
+        if ap_p_value > 0.05 and n >= 20:
+            ap = True
+        elif ap_p_value <= 0.05 and n >= 20:
+            ap = False
+
+        # print(ap_p_value, ad_p_value, sw_p_value, lf_p_value)
+
+        return (sw, lf, ad, ap)
+
+    def anderson_get_p(self, data, dist='norm'):
+        '''
+            calculating p-value for Anderson-Darling test using the method described here:            
+            Computation of Probability Associated with Anderson-Darling Statistic
+            Lorentz Jantschi and Sorana D. Bolboaca, 2018 - Mathematics
+
+        '''
+        e = 2.718281828459045
         n = len(data)
-        mean = np.mean(data)
-        std = np.std(data, ddof=1)
-        cdf_values = norm.cdf(data, loc=mean, scale=std)
-        empirical_cdf = np.arange(1, n + 1) / n
-        D_plus = np.max(empirical_cdf - cdf_values)
-        D_minus = np.max(cdf_values - (np.arange(n) / n))
-        D = max(D_plus, D_minus)
 
-        # Use critical values from the Lilliefors table
-        # (two-sided test, approximations for large n)
-        critical_values = {
-            100: 0.072,
-            1000: 0.024,
-            5000: 0.018,
-            10000: 0.015,
-            np.inf: 0.01
-        }
+        ad, critical_values, significance_levels = anderson(
+            data, dist=dist)
 
-        for size, critical_value in critical_values.items():
-            if n <= size:
-                return D, 1 - critical_value if D < critical_value else 0
+        # adjust ad_stat for small sample sizes:
+        s = ad*(1 + 0.75/n + 2.25/(n**2))
 
-        return D, 0
+        if s >= 0.6:
+            p = e**(1.2937 - 5.709*s + 0.0186*s**2)
+        elif s > 0.34:
+            p = e**(0.9177 - 4.279*s - 1.38*s**2)
+        elif s > 0.2:
+            p = 1 - e**(-8.318 + 42.796*s - 59.938*s**2)
+        elif s <= 0.2:
+            p = 1 - e**(-13.436 + 101.14*s - 223.73*s**2)
+        else:
+            p = None
+
+        return ad, p
 
 
 class __TextFormatting():
@@ -361,7 +399,6 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
         self.error = False
         self.warnings = []
         self.normals = []
-        self.methods = []
         self.test_name = None
         self.test_id = None
         self.test_stat = None
@@ -418,14 +455,22 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
         self.print_groups()
 
         # Normality tests
-        self.log('\n\nNormality checked by both Shapiro-Wilk and Lilliefors tests')
-        self.log('Group data is normal if at least one results is positive:\n')
+        self.log(
+            '\n\nThe group is assumed to be normally distributed if at least one')
+        self.log(
+            'normality test result is positive. Normality checked by tests:')
+        self.log('Shapiro-Wilk, Lilliefors, Anderson-Darling, D\'Agostino-Pearson')
+        self.log(
+            '[+] -positive, [-] -negative, [ ] -too small group for the test\n')
+        self.log('        Test   :   SW  LF  AD  AP  ')
         for i, data in enumerate(self.data):
-            normal, method = self.check_normality(data)
-            self.normals.append(normal)
-            self.methods.append(method)
+            poll = self.check_normality(data)
+            isnormal = any(poll)
+            poll_print = tuple(
+                '+' if x is True else '-' if x is False else ' ' if x is None else 'e' for x in poll)
+            self.normals.append(isnormal)
             self.log(
-                f'        Group {i+1}: disrtibution is {"normal" if normal else "not normal"}')
+                f'        Group {i+1}:    {poll_print[0]}   {poll_print[1]}   {poll_print[2]}   {poll_print[3]}   so disrtibution seems {"normal" if isnormal else "not normal"}')
         self.parametric = all(self.normals)
 
         # print test choosen
@@ -536,17 +581,17 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
         self.__run_test(test='wilcoxon')
 
     def GetResult(self):
-        if not self.results and not self.error: 
+        if not self.results and not self.error:
             self.__run_test(test='auto')
             return self.results
-        if not self.results and self.error: 
+        if not self.results and self.error:
             print('Error occured, no results to output')
             return {}
         else:
             return self.results
 
     def GetSummary(self):
-        if not self.results and not self.error: 
+        if not self.results and not self.error:
             self.__run_test(test='auto')
             return self.summary
         else:

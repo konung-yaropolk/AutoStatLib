@@ -8,13 +8,13 @@ import AutoStatLib
 # %%# generate random normal data:
 groups = 2
 n = 30
-data = [list(np.random.normal(.5*i + 4, abs(1-.2*i), n))
-        for i in range(groups)]
+# data = [list(np.random.normal(.5*i + 4, abs(1-.2*i), n))
+#         for i in range(groups)]
 
 # %%# generate random non-normal data:
 # groups = 2
 # n = 30
-# data = [list(np.random.uniform(i+3, i+1, n)) for i in range(groups)]
+data = [list(np.random.uniform(i+3, i+1, n)) for i in range(groups)]
 
 
 # %%# set the parameters:
@@ -113,14 +113,14 @@ def barplot(data_samples, p=1, stars='ns', sd=0, mean=0, median=0, testname='', 
     plt.show()
 
 
-barplot(data,
-        p=results['p-value'],
-        stars=results['Stars_Printed'],
-        sd=results['Groups_SD'],
-        mean=results['Groups_Mean'],
-        median=results['Groups_Median'],
-        testname=results['Test_Name'],
-        n=results['Groups_N'],
-        )
+# barplot(data,
+#         p=results['p-value'],
+#         stars=results['Stars_Printed'],
+#         sd=results['Groups_SD'],
+#         mean=results['Groups_Mean'],
+#         median=results['Groups_Median'],
+#         testname=results['Test_Name'],
+#         n=results['Groups_N'],
+#         )
 
 # %%
