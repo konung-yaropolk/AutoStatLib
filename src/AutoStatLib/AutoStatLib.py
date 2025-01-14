@@ -425,7 +425,7 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
                         and (test == 't_test_single_sample'
                              or test == 'wilcoxon_single_sample')), 'Only one group of data must be given for single-group tests'
             assert all(len(
-                group) > 2 for group in self.data), 'Each group must contain at least three values'
+                group) >= 4 for group in self.data), 'Each group must contain at least four values'
             assert not (self.paired == True and not all(len(lst) == len(
                 self.data[0]) for lst in self.data)), 'Paired groups must be the same length'
             assert not (test == 'friedman' and not all(len(lst) == len(
