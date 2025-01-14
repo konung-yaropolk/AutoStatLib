@@ -582,7 +582,8 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
 
     def GetResult(self):
         if not self.results and not self.error:
-            self.__run_test(test='auto')
+            print('No test chosen, no results to output')
+            # self.__run_test(test='auto')
             return self.results
         if not self.results and self.error:
             print('Error occured, no results to output')
@@ -592,7 +593,8 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
 
     def GetSummary(self):
         if not self.results and not self.error:
-            self.__run_test(test='auto')
+            print('No test chosen, no summary to output')
+            # self.__run_test(test='auto')
             return self.summary
         else:
             return self.summary
