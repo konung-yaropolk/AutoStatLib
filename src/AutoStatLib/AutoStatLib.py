@@ -96,14 +96,14 @@ class __StatisticalTests():
             self.popmean = 0
             self.AddWarning('no_pop_mean_set')
         data = [i - self.popmean for i in self.data[0]]
-        w_stat, w_p_value = wilcoxon(data)
+        w_stat, p_value = wilcoxon(data)
         if self.tails == 1:
             p_value /= 2
         self.test_name = 'Wilcoxon signed-rank test for single sample'
         self.test_id = 'wilcoxon_single_sample'
         self.paired = False
         self.test_stat = w_stat
-        self.p_value = w_p_value
+        self.p_value = p_value
 
     def wilcoxon(self):
         stat, p_value = wilcoxon(self.data[0], self.data[1])
@@ -148,20 +148,22 @@ class __NormalityTests():
             lf = False
 
         # Anderson-Darling test
-        ad_stat, ad_p_value = self.anderson_get_p(
-            data, dist='norm')
-        if ad_p_value > 0.05 and n >= 20:
-            ad = True
-        elif ad_p_value <= 0.05 and n >= 20:
-            ad = False
+        if n >= 20:
+            ad_stat, ad_p_value = self.anderson_get_p(
+                data, dist='norm')
+            if ad_p_value > 0.05:
+                ad = True
+            else:
+                ad = False
 
         # D'Agostino-Pearson test
-        ap_stat, ap_p_value = normaltest(data)
         # test result is skewed if n<20
-        if ap_p_value > 0.05 and n >= 20:
-            ap = True
-        elif ap_p_value <= 0.05 and n >= 20:
-            ap = False
+        if n >= 20:
+            ap_stat, ap_p_value = normaltest(data)
+            if ap_p_value > 0.05:
+                ap = True
+            else:
+                ap = False
 
         # print(ap_p_value, ad_p_value, sw_p_value, lf_p_value)
 
@@ -386,7 +388,7 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
             'wilcoxon_single_sample',
         ]
         self.warning_ids_all = {
-            'not-numeric':                     '\nWarning: Non-numeric data was found in input and ignored.\n         Make sure the input data is correct to get the correct results\n',
+            # 'not-numeric':                     '\nWarning: Non-numeric data was found in input and ignored.\n         Make sure the input data is correct to get the correct results\n',
             'param_test_with_non-normal_data': '\nWarning: Parametric test was manualy chosen for Not-Normaly distributed data.\n         The results might be skewed. \n         Please, run non-parametric test or preform automatic test selection.\n',
             'non-param_test_with_normal_data': '\nWarning: Non-Parametric test was manualy chosen for Normaly distributed data.\n         The results might be skewed. \n         Please, run parametric test or preform automatic test selection.\n',
             'no_pop_mean_set':                 '\nWarning: No Population Mean was set up for single-sample test, used default 0 value.\n         The results might be skewed. \n         Please, set the Population Mean and run the test again.\n',
@@ -411,7 +413,8 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
         # adjusting input data type
         self.data = self.floatify_recursive(self.groups_list)
         if self.warning_flag_non_numeric_data:
-            self.AddWarning('not-numeric')
+            self.log(
+                'Text or other non-numeric data in the input was ignored:')
 
         # delete the empty cols from input
         self.data = [col for col in self.data if any(
@@ -419,6 +422,7 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
 
         # User input assertion block
         try:
+            assert self.data, 'There is no input data'
             assert self.tails in [1, 2], 'Tails parameter can be 1 or 2 only'
             assert test in self.test_ids_all or test == 'auto', 'Wrong test id choosen, ensure you called correct function'
             assert not (self.n_groups > 1
@@ -604,4 +608,4 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
 
 
 if __name__ == '__main__':
-    print('\nThis package works as an imported module only\n')
+    print('This package works as an imported module only.\nUse "import autostatlib" statement')

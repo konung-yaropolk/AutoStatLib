@@ -1,2 +1,2 @@
-from .AutoStatLib import StatisticalAnalysis
-from ._version import __version__
+from AutoStatLib.AutoStatLib import StatisticalAnalysis
+from AutoStatLib._version import __version__
