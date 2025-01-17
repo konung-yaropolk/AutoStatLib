@@ -113,20 +113,40 @@ If errors occured, *GetResult()* returns an empty dictionary
 
 
 ---
-## Pre-Alpha dev status.
+## Pre-Alpha dev status.  
+  
+### TODO:  
+  
+-- Kruskal-Wallis test - add Dunn's multiple comparisons  
+-- Anova: add 2-way anova and 3-way anova  
+-- onevay Anova: add repeated measures (for normal dependent values) with and without Gaisser-Greenhouse correction  
+-- onevay Anova: add Brown-Forsithe and Welch (for normal independent values with unequal SDs between groups)  
+-- paired T-test: add ratio-paired t-test (ratios of paired values are consistent)  
+-- add Welch test (for norm data unequal variances)
+-- add Kolmogorov-smirnov test (unpaired nonparametric 2 sample, compare cumulative distributions)  
+-- add independent t-test with Welch correction (do not assume equal SDs in groups)  
+-- add correlation test, correlation diagram  
+-- add linear regression, regression diagram  
+-- add QQ plot
+-- n-sample tests: add onetail option
+  
+✅ done -- detailed normality test results
 
-### TODO:
-
---Kruskal-Wallis test - add Dunn's multiple comparisons
---Anova: add 2-way anova and 3-way(?)
-
-check:
---Wilcoxon signed-rank test and Mann-whitney - check mechanism of one-tailed calc, looks like it works wrong
-
-
-checked tests:
---Wilcoxon 2 tail - ok
---Mann-whitney 2 tail - ok
+  
+checked tests:  
+1-sample:  
+--Wilcoxon 2,1 tails - ok  
+--t-tests 2,1 tails -ok  
+  
+2-sample:  
+--Wilcoxon 2,1 tails - ok  
+--Mann-whitney 2,1 tails - ok  
+--t-tests 2,1 tails -ok  
+  
+n-sample:  
+--Kruskal-Wallis 2 tail - ok  
+--Friedman 2 tail - ok  
+--one-way ANOWA 2 tail - ok  
 
 
 
