@@ -35,7 +35,7 @@ data_uniform = [list(np.random.uniform(i+3, i+1, n)) for i in range(groups)]
 
 
 # set the parameters:
-paired = False     # is groups dependend or not
+paired = False     # is groups dependent or not
 tails = 2          # two-tailed or one-tailed result
 popmean = 0        # population mean - only for single-sample tests needed
 
@@ -51,7 +51,7 @@ analysis.RunAuto()
 
 or you can choose specific tests:
 ```python
-# 2 groups independend:
+# 2 groups independent:
 analysis.RunTtest()
 analysis.RunMannWhitney()
 

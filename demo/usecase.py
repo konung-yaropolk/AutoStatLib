@@ -32,7 +32,7 @@ analysis.RunAuto()
 
 # %%# Preform specific tests:
 
-# # 2 groups independend:
+# # 2 groups independent:
 # analysis.RunTtest()
 # analysis.RunMannWhitney()
 

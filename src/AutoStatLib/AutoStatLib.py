@@ -78,13 +78,13 @@ class __StatisticalTests():
         self.test_stat = stat
         self.p_value = p_value
 
-    def t_test_independend(self):
+    def t_test_independent(self):
         t_stat, t_p_value = ttest_ind(
             self.data[0], self.data[1])
         if self.tails == 1:
             t_p_value /= 2
-        self.test_name = 't-test for independend samples'
-        self.test_id = 't_test_independend'
+        self.test_name = 't-test for independent samples'
+        self.test_id = 't_test_independent'
         self.paired = False
         self.test_stat = t_stat
         self.p_value = t_p_value
@@ -422,7 +422,7 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
             'friedman',
             'kruskal_wallis',
             'mann_whitney',
-            't_test_independend',
+            't_test_independent',
             't_test_paired',
             't_test_single_sample',
             'wilcoxon',
@@ -431,11 +431,11 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
         self.test_ids_parametric = [
             'anova_1w_ordinary',
             'anova_1w_rm'
-            't_test_independend',
+            't_test_independent',
             't_test_paired',
             't_test_single_sample',
         ]
-        self.test_ids_dependend = [
+        self.test_ids_dependent = [
             'anova_1w_rm',
             'friedman',
             't_test_paired',
@@ -449,7 +449,7 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
         ]
         self.test_ids_2sample = [
             'mann_whitney',
-            't_test_independend',
+            't_test_independent',
             't_test_paired',
             'wilcoxon',
         ]
@@ -499,7 +499,7 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
                 group) >= 4 for group in self.data), 'Each group must contain at least four values'
             assert not (self.paired == True
                         and not all(len(lst) == len(self.data[0]) for lst in self.data)), 'Paired groups must have the same length'
-            assert not (test in self.test_ids_dependend
+            assert not (test in self.test_ids_dependent
                         and not all(len(lst) == len(self.data[0]) for lst in self.data)), 'Groups must have the same length for dependent groups test'
             assert not (test in self.test_ids_2sample
                         and self.n_groups != 2), f'Only two groups of data must be given for 2-groups tests, got {self.n_groups}'
@@ -560,8 +560,8 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
             self.kruskal_wallis_test()
         elif test == 'mann_whitney':
             self.mann_whitney_u_test()
-        elif test == 't_test_independend':
-            self.t_test_independend()
+        elif test == 't_test_independent':
+            self.t_test_independent()
         elif test == 't_test_paired':
             self.t_test_paired()
         elif test == 't_test_single_sample':
@@ -601,7 +601,7 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
                     return self.wilcoxon()
             else:
                 if self.parametric:
-                    return self.t_test_independend()
+                    return self.t_test_independent()
                 else:
                     return self.mann_whitney_u_test()
 
@@ -643,7 +643,7 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
         self.__run_test(test='mann_whitney')
 
     def RunTtest(self):
-        self.__run_test(test='t_test_independend')
+        self.__run_test(test='t_test_independent')
 
     def RunTtestPaired(self):
         self.__run_test(test='t_test_paired')
