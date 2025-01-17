@@ -1,6 +1,8 @@
 import numpy as np
+import pandas as pd
 from statsmodels.stats.diagnostic import lilliefors
-from scipy.stats import ttest_rel, ttest_ind, ttest_1samp, wilcoxon, mannwhitneyu, f_oneway, kruskal, friedmanchisquare, shapiro, kstest, anderson, normaltest
+from statsmodels.stats.anova import AnovaRM
+from scipy.stats import ttest_rel, ttest_ind, ttest_1samp, wilcoxon, mannwhitneyu, f_oneway, kruskal, friedmanchisquare, shapiro, anderson, normaltest
 
 
 class __StatisticalTests():
@@ -8,17 +10,37 @@ class __StatisticalTests():
         Statistical tests mixin
     '''
 
-    def anova(self):
+    def anova_1w_ordinary(self):
         stat, p_value = f_oneway(*self.data)
         self.tails = 2
         # if self.tails == 1 and p_value > 0.5:
         #     p_value /= 2
         # if self.tails == 1:
         #     p_value /= 2
-        self.test_name = 'ANOVA'
-        self.test_id = 'anova'
+        self.test_name = 'Ordinary One-Way ANOVA'
+        self.test_id = 'anova_1w_ordinary'
         self.paired = False
         self.test_stat = stat
+        self.p_value = p_value
+
+    def anova_1w_rm(self):
+        """
+        Perform repeated measures one-way ANOVA test.
+
+        Parameters:
+        data: list of lists, where each sublist represents repeated measures for a subject
+        """
+
+        df = self.matrix_to_dataframe(self.data)
+        res = AnovaRM(df, 'Value', 'Row', within=['Col']).fit()
+        f_stat = res.anova_table['F Value'][0]
+        p_value = res.anova_table['Pr > F'][0]
+
+        self.tails = 2
+        self.test_name = 'Repeated Measures One-Way ANOVA'
+        self.test_id = 'anova_1w_rm'
+        self.paired = True
+        self.test_stat = f_stat
         self.p_value = p_value
 
     def friedman_test(self):
@@ -120,7 +142,7 @@ class __NormalityTests():
     '''
         Normality tests mixin
 
-        see the article about minimum sample size for tests:
+        see the article about minimal sample size for tests:
         Power comparisons of Shapiro-Wilk, Kolmogorov-Smirnov,
         Lilliefors and Anderson-Darling tests, Nornadiah Mohd Razali1, Yap Bee Wah1
     '''
@@ -171,7 +193,7 @@ class __NormalityTests():
 
     def anderson_get_p(self, data, dist='norm'):
         '''
-            calculating p-value for Anderson-Darling test using the method described here:            
+            calculating p-value for Anderson-Darling test using the method described here:
             Computation of Probability Associated with Anderson-Darling Statistic
             Lorentz Jantschi and Sorana D. Bolboaca, 2018 - Mathematics
 
@@ -197,6 +219,65 @@ class __NormalityTests():
             p = None
 
         return ad, p
+
+
+class __Helpers():
+
+    def matrix_to_dataframe(self, matrix):
+        data = []
+        cols = []
+        rows = []
+
+        order_number = 1
+        for i, row in enumerate(matrix):
+            for j, value in enumerate(row):
+                data.append(value)
+                cols.append(i)
+                rows.append(j)
+                order_number += 1
+
+        df = pd.DataFrame(
+            {'Row': rows, 'Col': cols, 'Value': data})
+        return df
+
+    def create_results_dict(self) -> dict:
+
+        self.stars_int = self.make_stars()
+        self.stars_str = '*' * self.stars_int if self.stars_int else 'ns'
+
+        return {
+            'p-value': self.make_p_value_printed(),
+            'Significance(p<0.05)':  True if self.p_value.item() < 0.05 else False,
+            'Stars_Printed': self.stars_str,
+            'Test_Name': self.test_name,
+            'Groups_Compared': self.n_groups,
+            'Population_Mean': self.popmean if self.n_groups == 1 else 'N/A',
+            'Data_Normaly_Distributed': self.parametric,
+            'Parametric_Test_Applied': True if self.test_id in self.test_ids_parametric else False,
+            'Paired_Test_Applied': self.paired,
+            'Tails': self.tails,
+            'p-value_exact': self.p_value.item(),
+            'Stars':  self.stars_int,
+            # 'Stat_Value': self.test_stat.item(),
+            'Warnings': self.warnings,
+            'Groups_N': [len(self.data[i]) for i in range(len(self.data))],
+            'Groups_Median': [np.median(self.data[i]).item() for i in range(len(self.data))],
+            'Groups_Mean': [np.mean(self.data[i]).item() for i in range(len(self.data))],
+            'Groups_SD': [np.std(self.data[i]).item() for i in range(len(self.data))],
+            'Groups_SE': [np.std(self.data[i]).item() / np.sqrt(len(self.data)).item() for i in range(len(self.data))],
+            # actually returns list of lists of numpy dtypes of float64, next make it return regular floats:
+            'Samples': self.data,
+        }
+
+    def log(self, *args, **kwargs):
+        message = ' '.join(map(str, args))
+        # print(message, **kwargs)
+        self.summary += '\n' + message
+
+    def AddWarning(self, warning_id):
+        message = self.warning_ids_all[warning_id]
+        self.log(message)
+        self.warnings.append(message)
 
 
 class __TextFormatting():
@@ -293,45 +374,6 @@ class __TextFormatting():
             else:
                 self.log(i, ':', ' ' * shift, self.results[i])
 
-    def create_results_dict(self) -> dict:
-
-        self.stars_int = self.make_stars()
-        self.stars_str = '*' * self.stars_int if self.stars_int else 'ns'
-
-        return {
-            'p-value': self.make_p_value_printed(),
-            'Significance(p<0.05)':  True if self.p_value.item() < 0.05 else False,
-            'Stars_Printed': self.stars_str,
-            'Test_Name': self.test_name,
-            'Groups_Compared': self.n_groups,
-            'Population_Mean': self.popmean if self.n_groups == 1 else 'N/A',
-            'Data_Normaly_Distributed': self.parametric,
-            'Parametric_Test_Applied': True if self.test_id in self.test_ids_parametric else False,
-            'Paired_Test_Applied': self.paired,
-            'Tails': self.tails,
-            'p-value_exact': self.p_value.item(),
-            'Stars':  self.stars_int,
-            # 'Stat_Value': self.test_stat.item(),
-            'Warnings': self.warnings,
-            'Groups_N': [len(self.data[i]) for i in range(len(self.data))],
-            'Groups_Median': [np.median(self.data[i]).item() for i in range(len(self.data))],
-            'Groups_Mean': [np.mean(self.data[i]).item() for i in range(len(self.data))],
-            'Groups_SD': [np.std(self.data[i]).item() for i in range(len(self.data))],
-            'Groups_SE': [np.std(self.data[i]).item() / np.sqrt(len(self.data)).item() for i in range(len(self.data))],
-            # actually returns list of lists of numpy dtypes of float64, next make it return regular floats:
-            'Samples': self.data,
-        }
-
-    def log(self, *args, **kwargs):
-        message = ' '.join(map(str, args))
-        # print(message, **kwargs)
-        self.summary += '\n' + message
-
-    def AddWarning(self, warning_id):
-        message = self.warning_ids_all[warning_id]
-        self.log(message)
-        self.warnings.append(message)
-
 
 class __InputFormatting():
     def floatify_recursive(self, data):
@@ -349,7 +391,7 @@ class __InputFormatting():
                 return None
 
 
-class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting, __InputFormatting):
+class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting, __InputFormatting, __Helpers):
     '''
         The main class
         *documentation placeholder*
@@ -372,12 +414,11 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
         self.n_groups = len(self.groups_list)
         self.warning_flag_non_numeric_data = False
         self.summary = ''
-        self.test_ids_parametric = ['anova',
-                                    't_test_independend',
-                                    't_test_paired',
-                                    't_test_single_sample',]
+
+        # test IDs classification:
         self.test_ids_all = [  # in aplhabetical order
-            'anova',
+            'anova_1w_ordinary',
+            'anova_1w_rm',
             'friedman',
             'kruskal_wallis',
             'mann_whitney',
@@ -385,6 +426,35 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
             't_test_paired',
             't_test_single_sample',
             'wilcoxon',
+            'wilcoxon_single_sample',
+        ]
+        self.test_ids_parametric = [
+            'anova_1w_ordinary',
+            'anova_1w_rm'
+            't_test_independend',
+            't_test_paired',
+            't_test_single_sample',
+        ]
+        self.test_ids_dependend = [
+            'anova_1w_rm',
+            'friedman',
+            't_test_paired',
+            'wilcoxon',
+        ]
+        self.test_ids_3sample = [
+            'anova_1w_ordinary',
+            'anova_1w_rm',
+            'friedman',
+            'kruskal_wallis',
+        ]
+        self.test_ids_2sample = [
+            'mann_whitney',
+            't_test_independend',
+            't_test_paired',
+            'wilcoxon',
+        ]
+        self.test_ids_1sample = [
+            't_test_single_sample',
             'wilcoxon_single_sample',
         ]
         self.warning_ids_all = {
@@ -425,28 +495,18 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
             assert self.data, 'There is no input data'
             assert self.tails in [1, 2], 'Tails parameter can be 1 or 2 only'
             assert test in self.test_ids_all or test == 'auto', 'Wrong test id choosen, ensure you called correct function'
-            assert not (self.n_groups > 1
-                        and (test == 't_test_single_sample'
-                             or test == 'wilcoxon_single_sample')), 'Only one group of data must be given for single-group tests'
             assert all(len(
                 group) >= 4 for group in self.data), 'Each group must contain at least four values'
-            assert not (self.paired == True and not all(len(lst) == len(
-                self.data[0]) for lst in self.data)), 'Paired groups must be the same length'
-            assert not (test == 'friedman' and not all(len(lst) == len(
-                self.data[0]) for lst in self.data)), 'Paired groups must be the same length for Friedman Chi Square test'
-            assert not (test == 't_test_paired' and not all(len(lst) == len(
-                self.data[0]) for lst in self.data)), 'Paired groups must be the same length for Paired t-test'
-            assert not (test == 'wilcoxon' and not all(len(lst) == len(
-                self.data[0]) for lst in self.data)), 'Paired groups must be the same length for Wilcoxon signed-rank test'
-            assert not (test == 'friedman' and self.n_groups <
-                        3), 'At least three groups of data must be given for 3-groups tests'
-            assert not ((test == 'anova'
-                         or test == 'kruskal_wallis') and self.n_groups < 2), 'At least two groups of data must be given for ANOVA or Kruskal Wallis tests'
-            assert not ((test == 'wilcoxon'
-                         or test == 't_test_independend'
-                         or test == 't_test_paired'
-                         or test == 'mann_whitney')
-                        and self.n_groups != 2), 'Only two groups of data must be given for 2-groups tests'
+            assert not (self.paired == True
+                        and not all(len(lst) == len(self.data[0]) for lst in self.data)), 'Paired groups must have the same length'
+            assert not (test in self.test_ids_dependend
+                        and not all(len(lst) == len(self.data[0]) for lst in self.data)), 'Groups must have the same length for dependend groups test'
+            assert not (test in self.test_ids_2sample
+                        and self.n_groups != 2), f'Only two groups of data must be given for 2-groups tests, got {self.n_groups}'
+            assert not (test in self.test_ids_1sample
+                        and self.n_groups > 1), f'Only one group of data must be given for single-group tests, got {self.n_groups}'
+            assert not (test in self.test_ids_3sample
+                        and self.n_groups < 3), f'At least three groups of data must be given for multi-groups tests, got {self.n_groups}'
         except AssertionError as error:
             self.log('\nTest  :', test)
             self.log('Error :', error)
@@ -490,8 +550,10 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
         if not test == 'auto' and self.parametric and not test in self.test_ids_parametric:
             self.AddWarning('non-param_test_with_normal_data')
 
-        if test == 'anova':
-            self.anova()
+        if test == 'anova_1w_ordinary':
+            self.anova_1w_ordinary()
+        elif test == 'anova_1w_rm':
+            self.anova_1w_rm()
         elif test == 'friedman':
             self.friedman_test()
         elif test == 'kruskal_wallis':
@@ -525,7 +587,13 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
 
     def __auto(self):
 
-        if self.n_groups == 2:
+        if self.n_groups == 1:
+            if self.parametric:
+                return self.t_test_single_sample()
+            else:
+                return self.wilcoxon_single_sample()
+
+        elif self.n_groups == 2:
             if self.paired:
                 if self.parametric:
                     return self.t_test_paired()
@@ -536,19 +604,21 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
                     return self.t_test_independend()
                 else:
                     return self.mann_whitney_u_test()
-        elif self.n_groups == 1:
-            if self.parametric:
-                return self.t_test_single_sample()
-            else:
-                return self.wilcoxon_single_sample()
-        else:
+
+        elif self.n_groups >= 3:
             if self.paired:
-                return self.friedman_test()
+                if self.parametric:
+                    return self.anova_1w_rm()
+                else:
+                    return self.friedman_test()
             else:
                 if self.parametric:
-                    return self.anova()
+                    return self.anova_1w_ordinary()
                 else:
                     return self.kruskal_wallis_test()
+
+        else:
+            pass
 
     # public methods:
     def RunAuto(self):
@@ -557,8 +627,11 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
     def RunManual(self, test):
         self.__run_test(test)
 
-    def RunAnova(self):
-        self.__run_test(test='anova')
+    def RunOnewayAnova(self):
+        self.__run_test(test='anova_1w_ordinary')
+
+    def RunOnewayAnovaRM(self):
+        self.__run_test(test='anova_1w_rm')
 
     def RunFriedman(self):
         self.__run_test(test='friedman')
@@ -602,6 +675,9 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
             return self.summary
         else:
             return self.summary
+
+    def GetTestIDs(self):
+        return self.test_ids_all
 
     def PrintSummary(self):
         print(self.summary)
