@@ -500,7 +500,7 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
             assert not (self.paired == True
                         and not all(len(lst) == len(self.data[0]) for lst in self.data)), 'Paired groups must have the same length'
             assert not (test in self.test_ids_dependend
-                        and not all(len(lst) == len(self.data[0]) for lst in self.data)), 'Groups must have the same length for dependend groups test'
+                        and not all(len(lst) == len(self.data[0]) for lst in self.data)), 'Groups must have the same length for dependent groups test'
             assert not (test in self.test_ids_2sample
                         and self.n_groups != 2), f'Only two groups of data must be given for 2-groups tests, got {self.n_groups}'
             assert not (test in self.test_ids_1sample

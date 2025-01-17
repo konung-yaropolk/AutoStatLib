@@ -18,8 +18,8 @@ data = [list(np.random.uniform(i+3, i+1, n)) for i in range(groups)]
 
 
 # %%# set the parameters:
-paired = False   # is groups dependend or not
-tails = 2        # two-tailed or one-tailed result
+paired = False     # is groups dependent or not
+tails = 2          # two-tailed or one-tailed result
 popmean = 0        # population mean - only for single-sample tests needed
 
 # %%# initiate the analysis
