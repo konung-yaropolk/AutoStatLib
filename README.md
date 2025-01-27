@@ -60,10 +60,11 @@ analysis.RunTtestPaired()
 analysis.RunWilcoxon()
 
 # 3 and more independed groups comparison:
-analysis.RunAnova()
+analysis.RunOnewayAnova()
 analysis.RunKruskalWallis()
 
 # 3 and more depended groups comparison:
+analysis.RunOnewayAnovaRM()
 analysis.RunFriedman()
 
 # single group tests"
