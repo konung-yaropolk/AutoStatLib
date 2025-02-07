@@ -10,6 +10,78 @@ class __StatisticalTests():
         Statistical tests mixin
     '''
 
+    def run_test_auto(self):
+
+        if self.n_groups == 1:
+            if self.parametric:
+                self.run_test_by_id('t_test_single_sample')
+            else:
+                self.run_test_by_id('wilcoxon_single_sample')
+
+        elif self.n_groups == 2:
+            if self.paired:
+                if self.parametric:
+                    self.run_test_by_id('t_test_paired')
+                else:
+                    self.run_test_by_id('wilcoxon')
+            else:
+                if self.parametric:
+                    self.run_test_by_id('t_test_independent')
+                else:
+                    self.run_test_by_id('mann_whitney_u_test')
+
+        elif self.n_groups >= 3:
+            if self.paired:
+                if self.parametric:
+                    self.run_test_by_id('anova_1w_rm')
+                else:
+                    self.run_test_by_id('friedman_test')
+            else:
+                if self.parametric:
+                    self.run_test_by_id('anova_1w_ordinary')
+                else:
+                    self.run_test_by_id('kruskal_wallis_test')
+
+        else:
+            pass
+
+    def run_test_by_id(self, test_id):
+
+        test_names_dict = {
+            'anova_1w_ordinary': 'Ordinary One-Way ANOVA',
+            'anova_1w_rm': 'Repeated Measures One-Way ANOVA',
+            'friedman': 'Friedman test', 
+            'kruskal_wallis': 'Kruskal-Wallis test',
+            'mann_whitney': 'Mann-Whitney U test',
+            't_test_independent': 't-test for independent samples',
+            't_test_paired': 't-test for paired samples',
+            't_test_single_sample': 'Single-sample t-test',
+            'wilcoxon': 'Wilcoxon signed-rank test',
+            'wilcoxon_single_sample': 'Wilcoxon signed-rank test for single sample',
+        }
+
+        match test_id:
+            case 'anova_1w_ordinary': stat, p_value = self.anova_1w_ordinary()
+            case 'anova_1w_rm': stat, p_value = self.anova_1w_rm()
+            case 'friedman': stat, p_value = self.friedman()
+            case 'kruskal_wallis': stat, p_value = self.kruskal_wallis()
+            case 'mann_whitney': stat, p_value = self.mann_whitney()
+            case 't_test_independent': stat, p_value = self.t_test_independent()
+            case 't_test_paired': stat, p_value = self.t_test_paired()
+            case 't_test_single_sample': stat, p_value = self.t_test_single_sample()
+            case 'wilcoxon': stat, p_value = self.wilcoxon()
+            case 'wilcoxon_single_sample': stat, p_value = self.wilcoxon_single_sample()
+
+        if test_id in self.test_ids_dependent:
+            self.paired = True
+        else:
+            self.paired = False
+
+        self.test_name = test_names_dict[test_id]
+        self.test_id = test_id
+        self.test_stat = stat
+        self.p_value = p_value
+
     def anova_1w_ordinary(self):
         stat, p_value = f_oneway(*self.data)
         self.tails = 2
@@ -17,11 +89,7 @@ class __StatisticalTests():
         #     p_value /= 2
         # if self.tails == 1:
         #     p_value /= 2
-        self.test_name = 'Ordinary One-Way ANOVA'
-        self.test_id = 'anova_1w_ordinary'
-        self.paired = False
-        self.test_stat = stat
-        self.p_value = p_value
+        return stat, p_value
 
     def anova_1w_rm(self):
         """
@@ -33,34 +101,22 @@ class __StatisticalTests():
 
         df = self.matrix_to_dataframe(self.data)
         res = AnovaRM(df, 'Value', 'Row', within=['Col']).fit()
-        f_stat = res.anova_table['F Value'][0]
+        stat = res.anova_table['F Value'][0]
         p_value = res.anova_table['Pr > F'][0]
 
         self.tails = 2
-        self.test_name = 'Repeated Measures One-Way ANOVA'
-        self.test_id = 'anova_1w_rm'
-        self.paired = True
-        self.test_stat = f_stat
-        self.p_value = p_value
+        return stat, p_value
 
-    def friedman_test(self):
+    def friedman(self):
         stat, p_value = friedmanchisquare(*self.data)
         self.tails = 2
-        self.test_name = 'Friedman test'
-        self.test_id = 'friedman'
-        self.paired = True
-        self.test_stat = stat
-        self.p_value = p_value
+        return stat, p_value
 
-    def kruskal_wallis_test(self):
+    def kruskal_wallis(self):
         stat, p_value = kruskal(*self.data)
-        self.test_name = 'Kruskal-Wallis test'
-        self.test_id = 'kruskal_wallis'
-        self.paired = False
-        self.test_stat = stat
-        self.p_value = p_value
+        return stat, p_value
 
-    def mann_whitney_u_test(self):
+    def mann_whitney(self):
         stat, p_value = mannwhitneyu(
             self.data[0], self.data[1], alternative='two-sided')
         if self.tails == 1:
@@ -71,71 +127,46 @@ class __StatisticalTests():
         #     self.data[0], self.data[1], alternative='two-sided' if self.tails == 2 else 'less')
         # if self.tails == 1 and p_value > 0.5:
         #     p_value = 1-p_value
-
-        self.test_name = 'Mann-Whitney U test'
-        self.test_id = 'mann_whitney'
-        self.paired = False
-        self.test_stat = stat
-        self.p_value = p_value
+        return stat, p_value
 
     def t_test_independent(self):
-        t_stat, t_p_value = ttest_ind(
+        stat, p_value = ttest_ind(
             self.data[0], self.data[1])
         if self.tails == 1:
-            t_p_value /= 2
-        self.test_name = 't-test for independent samples'
-        self.test_id = 't_test_independent'
-        self.paired = False
-        self.test_stat = t_stat
-        self.p_value = t_p_value
+            p_value /= 2
+        return stat, p_value
 
     def t_test_paired(self):
-        t_stat, t_p_value = ttest_rel(
+        stat, p_value = ttest_rel(
             self.data[0], self.data[1])
         if self.tails == 1:
-            t_p_value /= 2
-        self.test_name = 't-test for paired samples'
-        self.test_id = 't_test_paired'
-        self.paired = True
-        self.test_stat = t_stat
-        self.p_value = t_p_value
+            p_value /= 2
+        return stat, p_value
 
     def t_test_single_sample(self):
         if self.popmean == None:
             self.popmean = 0
             self.AddWarning('no_pop_mean_set')
-        t_stat, t_p_value = ttest_1samp(self.data[0], self.popmean)
-        if self.tails == 1:
-            t_p_value /= 2
-        self.test_name = 'Single-sample t-test'
-        self.test_id = 't_test_single_sample'
-        self.paired = False
-        self.test_stat = t_stat
-        self.p_value = t_p_value
-
-    def wilcoxon_single_sample(self):
-        if self.popmean == None:
-            self.popmean = 0
-            self.AddWarning('no_pop_mean_set')
-        data = [i - self.popmean for i in self.data[0]]
-        w_stat, p_value = wilcoxon(data)
+        stat, p_value = ttest_1samp(self.data[0], self.popmean)
         if self.tails == 1:
             p_value /= 2
-        self.test_name = 'Wilcoxon signed-rank test for single sample'
-        self.test_id = 'wilcoxon_single_sample'
-        self.paired = False
-        self.test_stat = w_stat
-        self.p_value = p_value
+        return stat, p_value
 
     def wilcoxon(self):
         stat, p_value = wilcoxon(self.data[0], self.data[1])
         if self.tails == 1:
             p_value /= 2
-        self.test_name = 'Wilcoxon signed-rank test'
-        self.test_id = 'wilcoxon'
-        self.paired = True
-        self.test_stat = stat
-        self.p_value = p_value
+        return stat, p_value
+        
+    def wilcoxon_single_sample(self):
+        if self.popmean == None:
+            self.popmean = 0
+            self.AddWarning('no_pop_mean_set')
+        data = [i - self.popmean for i in self.data[0]]
+        stat, p_value = wilcoxon(data)
+        if self.tails == 1:
+            p_value /= 2
+        return stat, p_value
 
 
 class __NormalityTests():
@@ -550,29 +581,13 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
         if not test == 'auto' and self.parametric and not test in self.test_ids_parametric:
             self.AddWarning('non-param_test_with_normal_data')
 
-        if test == 'anova_1w_ordinary':
-            self.anova_1w_ordinary()
-        elif test == 'anova_1w_rm':
-            self.anova_1w_rm()
-        elif test == 'friedman':
-            self.friedman_test()
-        elif test == 'kruskal_wallis':
-            self.kruskal_wallis_test()
-        elif test == 'mann_whitney':
-            self.mann_whitney_u_test()
-        elif test == 't_test_independent':
-            self.t_test_independent()
-        elif test == 't_test_paired':
-            self.t_test_paired()
-        elif test == 't_test_single_sample':
-            self.t_test_single_sample()
-        elif test == 'wilcoxon':
-            self.wilcoxon()
-        elif test == 'wilcoxon_single_sample':
-            self.wilcoxon_single_sample()
+        # run the test
+
+        if test in self.test_ids_all:
+            self.run_test_by_id(test)
         else:
-            self.log('Automatic test selection preformed.')
-            self.__auto()
+            self.run_test_auto()
+
 
         # print the results
         self.results = self.create_results_dict()
@@ -585,40 +600,7 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
         if self.verbose == True:
             print(self.summary)
 
-    def __auto(self):
 
-        if self.n_groups == 1:
-            if self.parametric:
-                return self.t_test_single_sample()
-            else:
-                return self.wilcoxon_single_sample()
-
-        elif self.n_groups == 2:
-            if self.paired:
-                if self.parametric:
-                    return self.t_test_paired()
-                else:
-                    return self.wilcoxon()
-            else:
-                if self.parametric:
-                    return self.t_test_independent()
-                else:
-                    return self.mann_whitney_u_test()
-
-        elif self.n_groups >= 3:
-            if self.paired:
-                if self.parametric:
-                    return self.anova_1w_rm()
-                else:
-                    return self.friedman_test()
-            else:
-                if self.parametric:
-                    return self.anova_1w_ordinary()
-                else:
-                    return self.kruskal_wallis_test()
-
-        else:
-            pass
 
     # public methods:
     def RunAuto(self):
