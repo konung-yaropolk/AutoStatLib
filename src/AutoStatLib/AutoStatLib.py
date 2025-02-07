@@ -28,19 +28,19 @@ class __StatisticalTests():
                 if self.parametric:
                     self.run_test_by_id('t_test_independent')
                 else:
-                    self.run_test_by_id('mann_whitney_u_test')
+                    self.run_test_by_id('mann_whitney')
 
         elif self.n_groups >= 3:
             if self.paired:
                 if self.parametric:
                     self.run_test_by_id('anova_1w_rm')
                 else:
-                    self.run_test_by_id('friedman_test')
+                    self.run_test_by_id('friedman')
             else:
                 if self.parametric:
                     self.run_test_by_id('anova_1w_ordinary')
                 else:
-                    self.run_test_by_id('kruskal_wallis_test')
+                    self.run_test_by_id('kruskal_wallis')
 
         else:
             pass
