@@ -6,8 +6,8 @@ import AutoStatLib
 # Example usage:
 
 # %%# generate random normal data:
-groups = 2
-n = 30
+groups = 5
+n = 50
 # data = [list(np.random.normal(.5*i + 4, abs(1-.2*i), n))
 #         for i in range(groups)]
 
@@ -24,10 +24,10 @@ popmean = 0        # population mean - only for single-sample tests needed
 
 # %%# initiate the analysis
 analysis = AutoStatLib.StatisticalAnalysis(
-    data, paired=paired, tails=tails, popmean=popmean)
+    data, paired=paired, tails=tails, popmean=popmean, posthoc=True)
 
 # %%# Preform auto-selected test
-analysis.RunAuto()
+# analysis.RunAuto()
 
 
 # %%# Preform specific tests:
@@ -42,7 +42,7 @@ analysis.RunAuto()
 
 # # 3 and more independed groups comparison:
 # analysis.RunOnewayAnova()
-# analysis.RunKruskalWallis()
+analysis.RunKruskalWallis()
 
 # # 3 and more depended groups comparison:
 # analysis.RunOnewayAnovaRM()

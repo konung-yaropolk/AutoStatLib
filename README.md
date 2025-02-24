@@ -118,7 +118,7 @@ If errors occured, *GetResult()* returns an empty dictionary
   
 ### TODO:  
   
--- Kruskal-Wallis test - add Dunn's multiple comparisons  
+-- Anova: posthocs  
 -- Anova: add 2-way anova and 3-way anova  
 -- onevay Anova: add repeated measures (for normal dependent values) with and without Gaisser-Greenhouse correction  
 -- onevay Anova: add Brown-Forsithe and Welch (for normal independent values with unequal SDs between groups)  
@@ -132,9 +132,10 @@ If errors occured, *GetResult()* returns an empty dictionary
 -- n-sample tests: add onetail option
   
 ✅ done -- detailed normality test results
+✅ done -- added posthoc: Kruskal-Wallis Dunn's multiple comparisons
 
   
-checked tests:  
+tests check:  
 1-sample:  
 --Wilcoxon 2,1 tails - ok  
 --t-tests 2,1 tails -ok  
@@ -146,6 +147,7 @@ checked tests:
   
 n-sample:  
 --Kruskal-Wallis 2 tail - ok  
+--Dunn's multiple comparisons - ??
 --Friedman 2 tail - ok  
 --one-way ANOWA 2 tail - ok  
 
