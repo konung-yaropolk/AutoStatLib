@@ -1,428 +1,10 @@
-import numpy as np
-import pandas as pd
-from statsmodels.stats.diagnostic import lilliefors
-from statsmodels.stats.anova import AnovaRM
-from scipy.stats import ttest_rel, ttest_ind, ttest_1samp, wilcoxon, mannwhitneyu, f_oneway, kruskal, friedmanchisquare, shapiro, anderson, normaltest
+from AutoStatLib.statistical_tests import StatisticalTests
+from AutoStatLib.normality_tests import NormalityTests
+from AutoStatLib.helpers import Helpers
+from AutoStatLib.text_formatting import TextFormatting
 
 
-class __StatisticalTests():
-    '''
-        Statistical tests mixin
-    '''
-
-    def run_test_auto(self):
-
-        if self.n_groups == 1:
-            if self.parametric:
-                self.run_test_by_id('t_test_single_sample')
-            else:
-                self.run_test_by_id('wilcoxon_single_sample')
-
-        elif self.n_groups == 2:
-            if self.paired:
-                if self.parametric:
-                    self.run_test_by_id('t_test_paired')
-                else:
-                    self.run_test_by_id('wilcoxon')
-            else:
-                if self.parametric:
-                    self.run_test_by_id('t_test_independent')
-                else:
-                    self.run_test_by_id('mann_whitney')
-
-        elif self.n_groups >= 3:
-            if self.paired:
-                if self.parametric:
-                    self.run_test_by_id('anova_1w_rm')
-                else:
-                    self.run_test_by_id('friedman')
-            else:
-                if self.parametric:
-                    self.run_test_by_id('anova_1w_ordinary')
-                else:
-                    self.run_test_by_id('kruskal_wallis')
-
-        else:
-            pass
-
-    def run_test_by_id(self, test_id):
-
-        test_names_dict = {
-            'anova_1w_ordinary': 'Ordinary One-Way ANOVA',
-            'anova_1w_rm': 'Repeated Measures One-Way ANOVA',
-            'friedman': 'Friedman test', 
-            'kruskal_wallis': 'Kruskal-Wallis test',
-            'mann_whitney': 'Mann-Whitney U test',
-            't_test_independent': 't-test for independent samples',
-            't_test_paired': 't-test for paired samples',
-            't_test_single_sample': 'Single-sample t-test',
-            'wilcoxon': 'Wilcoxon signed-rank test',
-            'wilcoxon_single_sample': 'Wilcoxon signed-rank test for single sample',
-        }
-
-        match test_id:
-            case 'anova_1w_ordinary': stat, p_value = self.anova_1w_ordinary()
-            case 'anova_1w_rm': stat, p_value = self.anova_1w_rm()
-            case 'friedman': stat, p_value = self.friedman()
-            case 'kruskal_wallis': stat, p_value = self.kruskal_wallis()
-            case 'mann_whitney': stat, p_value = self.mann_whitney()
-            case 't_test_independent': stat, p_value = self.t_test_independent()
-            case 't_test_paired': stat, p_value = self.t_test_paired()
-            case 't_test_single_sample': stat, p_value = self.t_test_single_sample()
-            case 'wilcoxon': stat, p_value = self.wilcoxon()
-            case 'wilcoxon_single_sample': stat, p_value = self.wilcoxon_single_sample()
-
-        if test_id in self.test_ids_dependent:
-            self.paired = True
-        else:
-            self.paired = False
-
-        self.test_name = test_names_dict[test_id]
-        self.test_id = test_id
-        self.test_stat = stat
-        self.p_value = p_value
-
-    def anova_1w_ordinary(self):
-        stat, p_value = f_oneway(*self.data)
-        self.tails = 2
-        # if self.tails == 1 and p_value > 0.5:
-        #     p_value /= 2
-        # if self.tails == 1:
-        #     p_value /= 2
-        return stat, p_value
-
-    def anova_1w_rm(self):
-        """
-        Perform repeated measures one-way ANOVA test.
-
-        Parameters:
-        data: list of lists, where each sublist represents repeated measures for a subject
-        """
-
-        df = self.matrix_to_dataframe(self.data)
-        res = AnovaRM(df, 'Value', 'Row', within=['Col']).fit()
-        stat = res.anova_table['F Value'][0]
-        p_value = res.anova_table['Pr > F'][0]
-
-        self.tails = 2
-        return stat, p_value
-
-    def friedman(self):
-        stat, p_value = friedmanchisquare(*self.data)
-        self.tails = 2
-        return stat, p_value
-
-    def kruskal_wallis(self):
-        stat, p_value = kruskal(*self.data)
-        return stat, p_value
-
-    def mann_whitney(self):
-        stat, p_value = mannwhitneyu(
-            self.data[0], self.data[1], alternative='two-sided')
-        if self.tails == 1:
-            p_value /= 2
-        # alternative method of one-tailed calculation
-        # gives the same result:
-        # stat, p_value = mannwhitneyu(
-        #     self.data[0], self.data[1], alternative='two-sided' if self.tails == 2 else 'less')
-        # if self.tails == 1 and p_value > 0.5:
-        #     p_value = 1-p_value
-        return stat, p_value
-
-    def t_test_independent(self):
-        stat, p_value = ttest_ind(
-            self.data[0], self.data[1])
-        if self.tails == 1:
-            p_value /= 2
-        return stat, p_value
-
-    def t_test_paired(self):
-        stat, p_value = ttest_rel(
-            self.data[0], self.data[1])
-        if self.tails == 1:
-            p_value /= 2
-        return stat, p_value
-
-    def t_test_single_sample(self):
-        if self.popmean == None:
-            self.popmean = 0
-            self.AddWarning('no_pop_mean_set')
-        stat, p_value = ttest_1samp(self.data[0], self.popmean)
-        if self.tails == 1:
-            p_value /= 2
-        return stat, p_value
-
-    def wilcoxon(self):
-        stat, p_value = wilcoxon(self.data[0], self.data[1])
-        if self.tails == 1:
-            p_value /= 2
-        return stat, p_value
-        
-    def wilcoxon_single_sample(self):
-        if self.popmean == None:
-            self.popmean = 0
-            self.AddWarning('no_pop_mean_set')
-        data = [i - self.popmean for i in self.data[0]]
-        stat, p_value = wilcoxon(data)
-        if self.tails == 1:
-            p_value /= 2
-        return stat, p_value
-
-
-class __NormalityTests():
-    '''
-        Normality tests mixin
-
-        see the article about minimal sample size for tests:
-        Power comparisons of Shapiro-Wilk, Kolmogorov-Smirnov,
-        Lilliefors and Anderson-Darling tests, Nornadiah Mohd Razali1, Yap Bee Wah1
-    '''
-
-    def check_normality(self, data):
-        sw = None
-        lf = None
-        ad = None
-        ap = None
-        n = len(data)
-
-        # Shapiro-Wilk test
-        sw_stat, sw_p_value = shapiro(data)
-        if sw_p_value > 0.05:
-            sw = True
-        else:
-            sw = False
-
-        # Lilliefors test
-        lf_stat, lf_p_value = lilliefors(
-            data, dist='norm')
-        if lf_p_value > 0.05:
-            lf = True
-        else:
-            lf = False
-
-        # Anderson-Darling test
-        if n >= 20:
-            ad_stat, ad_p_value = self.anderson_get_p(
-                data, dist='norm')
-            if ad_p_value > 0.05:
-                ad = True
-            else:
-                ad = False
-
-        # D'Agostino-Pearson test
-        # test result is skewed if n<20
-        if n >= 20:
-            ap_stat, ap_p_value = normaltest(data)
-            if ap_p_value > 0.05:
-                ap = True
-            else:
-                ap = False
-
-        # print(ap_p_value, ad_p_value, sw_p_value, lf_p_value)
-
-        return (sw, lf, ad, ap)
-
-    def anderson_get_p(self, data, dist='norm'):
-        '''
-            calculating p-value for Anderson-Darling test using the method described here:
-            Computation of Probability Associated with Anderson-Darling Statistic
-            Lorentz Jantschi and Sorana D. Bolboaca, 2018 - Mathematics
-
-        '''
-        e = 2.718281828459045
-        n = len(data)
-
-        ad, critical_values, significance_levels = anderson(
-            data, dist=dist)
-
-        # adjust ad_stat for small sample sizes:
-        s = ad*(1 + 0.75/n + 2.25/(n**2))
-
-        if s >= 0.6:
-            p = e**(1.2937 - 5.709*s + 0.0186*s**2)
-        elif s > 0.34:
-            p = e**(0.9177 - 4.279*s - 1.38*s**2)
-        elif s > 0.2:
-            p = 1 - e**(-8.318 + 42.796*s - 59.938*s**2)
-        elif s <= 0.2:
-            p = 1 - e**(-13.436 + 101.14*s - 223.73*s**2)
-        else:
-            p = None
-
-        return ad, p
-
-
-class __Helpers():
-
-    def matrix_to_dataframe(self, matrix):
-        data = []
-        cols = []
-        rows = []
-
-        order_number = 1
-        for i, row in enumerate(matrix):
-            for j, value in enumerate(row):
-                data.append(value)
-                cols.append(i)
-                rows.append(j)
-                order_number += 1
-
-        df = pd.DataFrame(
-            {'Row': rows, 'Col': cols, 'Value': data})
-        return df
-
-    def create_results_dict(self) -> dict:
-
-        self.stars_int = self.make_stars()
-        self.stars_str = '*' * self.stars_int if self.stars_int else 'ns'
-
-        return {
-            'p-value': self.make_p_value_printed(),
-            'Significance(p<0.05)':  True if self.p_value.item() < 0.05 else False,
-            'Stars_Printed': self.stars_str,
-            'Test_Name': self.test_name,
-            'Groups_Compared': self.n_groups,
-            'Population_Mean': self.popmean if self.n_groups == 1 else 'N/A',
-            'Data_Normaly_Distributed': self.parametric,
-            'Parametric_Test_Applied': True if self.test_id in self.test_ids_parametric else False,
-            'Paired_Test_Applied': self.paired,
-            'Tails': self.tails,
-            'p-value_exact': self.p_value.item(),
-            'Stars':  self.stars_int,
-            # 'Stat_Value': self.test_stat.item(),
-            'Warnings': self.warnings,
-            'Groups_N': [len(self.data[i]) for i in range(len(self.data))],
-            'Groups_Median': [np.median(self.data[i]).item() for i in range(len(self.data))],
-            'Groups_Mean': [np.mean(self.data[i]).item() for i in range(len(self.data))],
-            'Groups_SD': [np.std(self.data[i]).item() for i in range(len(self.data))],
-            'Groups_SE': [np.std(self.data[i]).item() / np.sqrt(len(self.data)).item() for i in range(len(self.data))],
-            # actually returns list of lists of numpy dtypes of float64, next make it return regular floats:
-            'Samples': self.data,
-        }
-
-    def log(self, *args, **kwargs):
-        message = ' '.join(map(str, args))
-        # print(message, **kwargs)
-        self.summary += '\n' + message
-
-    def AddWarning(self, warning_id):
-        message = self.warning_ids_all[warning_id]
-        self.log(message)
-        self.warnings.append(message)
-
-
-class __TextFormatting():
-    '''
-        Text formatting mixin
-    '''
-
-    def autospace(self, elements_list, space, delimiter=' ') -> str:
-        output = ''
-        for i, element in enumerate(elements_list):
-            if i == len(elements_list):
-                output += element
-            else:
-                output += element + (space-len(element))*delimiter
-        return output
-
-    def print_groups(self, space=24, max_length=15):
-        self.log('')
-        # Get the number of groups (rows) and the maximum length of rows
-        data = self.data
-        num_groups = len(data)
-        group_longest = max(len(row) for row in data)
-
-        # Print the header
-        header = [f'Group {i+1}' for i in range(num_groups)]
-        line = [''*7]
-        self.log(self.autospace(header, space))
-        self.log(self.autospace(line, space))
-
-        # Print each column with a placeholder if longer than max_length
-        for i in range(group_longest):
-            row_values = []
-            all_values_empty = True
-            for row in data:
-                if len(row) > max_length:
-                    if i < max_length:
-                        row_values.append(str(row[i]))
-                        all_values_empty = False
-                    elif i == max_length:
-                        row_values.append(f'[{len(row) - max_length} more]')
-                        all_values_empty = False
-                    else:
-                        continue
-                else:
-                    if i < len(row):
-                        row_values.append(str(row[i]))
-                        all_values_empty = False
-                    else:
-                        row_values.append('')
-            if all_values_empty:
-                break
-            self.log(self.autospace(row_values, space))
-
-    def make_stars(self) -> int:
-        p = self.p_value.item()
-        if p is not None:
-            if p < 0.0001:
-                return 4
-            if p < 0.001:
-                return 3
-            elif p < 0.01:
-                return 2
-            elif p < 0.05:
-                return 1
-            else:
-                return 0
-        return 0
-
-    def make_p_value_printed(self) -> str:
-        p = self.p_value.item()
-        if p is not None:
-            if p > 0.99:
-                return 'p>0.99'
-            elif p >= 0.01:
-                return f'p={p:.2g}'
-            elif p >= 0.001:
-                return f'p={p:.2g}'
-            elif p >= 0.0001:
-                return f'p={p:.1g}'
-            elif p < 0.0001:
-                return 'p<0.0001'
-            else:
-                return 'N/A'
-        return 'N/A'
-
-    def print_results(self):
-        self.log('\n\nResults: \n')
-        for i in self.results:
-            shift = 27 - len(i)
-            if i == 'Warnings':
-                self.log(i, ':', ' ' * shift, len(self.results[i]))
-            elif i == 'Samples':
-                pass
-            else:
-                self.log(i, ':', ' ' * shift, self.results[i])
-
-
-class __InputFormatting():
-    def floatify_recursive(self, data):
-        if isinstance(data, list):
-            # Recursively process sublists and filter out None values
-            processed_list = [self.floatify_recursive(item) for item in data]
-            return [item for item in processed_list if item is not None]
-        else:
-            try:
-                # Try to convert the item to float
-                return np.float64(data)
-            except (ValueError, TypeError):
-                # If conversion fails, replace with None
-                self.warning_flag_non_numeric_data = True
-                return None
-
-
-class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting, __InputFormatting, __Helpers):
+class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Helpers):
     '''
         The main class
         *documentation placeholder*
@@ -434,6 +16,7 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
                  paired=False,
                  tails=2,
                  popmean=None,
+                 posthoc=False,
                  verbose=True):
         self.results = None
         self.error = False
@@ -441,6 +24,7 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
         self.paired = paired
         self.tails = tails
         self.popmean = popmean
+        self.posthoc = posthoc
         self.verbose = verbose
         self.n_groups = len(self.groups_list)
         self.warning_flag_non_numeric_data = False
@@ -495,7 +79,7 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
             'no_pop_mean_set':                 '\nWarning: No Population Mean was set up for single-sample test, used default 0 value.\n         The results might be skewed. \n         Please, set the Population Mean and run the test again.\n',
         }
 
-    def __run_test(self, test='auto'):
+    def run_test(self, test='auto'):
 
         # reset values from previous tests
         self.results = None
@@ -506,9 +90,11 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
         self.test_id = None
         self.test_stat = None
         self.p_value = None
+        self.posthoc_matrix_df = None
+        self.posthoc_matrix = []
 
         self.log('\n' + '-'*67)
-        self.log('Statistical analysis initiated for data in {} groups\n'.format(
+        self.log('Statistical analysis __init__iated for data in {} groups\n'.format(
             len(self.groups_list)))
 
         # adjusting input data type
@@ -604,45 +190,45 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
 
     # public methods:
     def RunAuto(self):
-        self.__run_test(test='auto')
+        self.run_test(test='auto')
 
     def RunManual(self, test):
-        self.__run_test(test)
+        self.run_test(test)
 
     def RunOnewayAnova(self):
-        self.__run_test(test='anova_1w_ordinary')
+        self.run_test(test='anova_1w_ordinary')
 
     def RunOnewayAnovaRM(self):
-        self.__run_test(test='anova_1w_rm')
+        self.run_test(test='anova_1w_rm')
 
     def RunFriedman(self):
-        self.__run_test(test='friedman')
+        self.run_test(test='friedman')
 
     def RunKruskalWallis(self):
-        self.__run_test(test='kruskal_wallis')
+        self.run_test(test='kruskal_wallis')
 
     def RunMannWhitney(self):
-        self.__run_test(test='mann_whitney')
+        self.run_test(test='mann_whitney')
 
     def RunTtest(self):
-        self.__run_test(test='t_test_independent')
+        self.run_test(test='t_test_independent')
 
     def RunTtestPaired(self):
-        self.__run_test(test='t_test_paired')
+        self.run_test(test='t_test_paired')
 
     def RunTtestSingleSample(self):
-        self.__run_test(test='t_test_single_sample')
+        self.run_test(test='t_test_single_sample')
 
     def RunWilcoxonSingleSample(self):
-        self.__run_test(test='wilcoxon_single_sample')
+        self.run_test(test='wilcoxon_single_sample')
 
     def RunWilcoxon(self):
-        self.__run_test(test='wilcoxon')
+        self.run_test(test='wilcoxon')
 
     def GetResult(self):
         if not self.results and not self.error:
             print('No test chosen, no results to output')
-            # self.__run_test(test='auto')
+            # self.run_test(test='auto')
             return self.results
         if not self.results and self.error:
             print('Error occured, no results to output')
@@ -653,7 +239,7 @@ class StatisticalAnalysis(__StatisticalTests, __NormalityTests, __TextFormatting
     def GetSummary(self):
         if not self.results and not self.error:
             print('No test chosen, no summary to output')
-            # self.__run_test(test='auto')
+            # self.run_test(test='auto')
             return self.summary
         else:
             return self.summary
