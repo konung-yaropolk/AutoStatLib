@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=62.6", "numpy", "scipy", "statsmodels"]
+requires = ["setuptools>=62.6", "numpy", "scipy", "statsmodels", "scikit-posthocs"]
 build-backend = "setuptools.build_meta"
 
 [project]
