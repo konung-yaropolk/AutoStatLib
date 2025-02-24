@@ -131,8 +131,8 @@ If errors occured, *GetResult()* returns an empty dictionary
 -- add QQ plot
 -- n-sample tests: add onetail option
   
-✅ done -- detailed normality test results
-✅ done -- added posthoc: Kruskal-Wallis Dunn's multiple comparisons
+✅ done -- detailed normality test results  
+✅ done -- added posthoc: Kruskal-Wallis Dunn's multiple comparisons 
 
   
 tests check:  
