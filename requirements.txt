@@ -1,5 +1,5 @@
 numpy
 scipy
 statsmodels
-scikit-posthocs
+scikit_posthocs
 pandas
