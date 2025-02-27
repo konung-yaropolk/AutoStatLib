@@ -27,7 +27,7 @@ analysis = AutoStatLib.StatisticalAnalysis(
     data, paired=paired, tails=tails, popmean=popmean, posthoc=True)
 
 # %%# Preform auto-selected test
-# analysis.RunAuto()
+analysis.RunAuto()
 
 
 # %%# Preform specific tests:
@@ -42,7 +42,7 @@ analysis = AutoStatLib.StatisticalAnalysis(
 
 # # 3 and more independed groups comparison:
 # analysis.RunOnewayAnova()
-analysis.RunKruskalWallis()
+# analysis.RunKruskalWallis()
 
 # # 3 and more depended groups comparison:
 # analysis.RunOnewayAnovaRM()

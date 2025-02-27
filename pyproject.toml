@@ -32,8 +32,9 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/konung-yaropolk/NPL"
-Issues = "https://github.com/konung-yaropolk/NPL/issues"
+Homepage = "https://github.com/konung-yaropolk/AutoStatLib"
+Repository = "https://github.com/konung-yaropolk/AutoStatLib.git"
+Issues = "https://github.com/konung-yaropolk/AutoStatLib/issues"
 
 [tool.setuptools.dynamic]
 version = {attr = "AutoStatLib.__version__"}
