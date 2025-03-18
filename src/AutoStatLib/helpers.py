@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 
+
 class Helpers():
 
     def matrix_to_dataframe(self, matrix):
@@ -61,9 +62,11 @@ class Helpers():
             'Groups_SE': [np.std(self.data[i]).item() / np.sqrt(len(self.data)).item() for i in range(len(self.data))],
             # actually returns list of lists of numpy dtypes of float64, next make it return regular floats:
             'Samples': self.data,
-            'Posthoc_Matrix': self.posthoc_matrix if self.posthoc_matrix else 'N/A',
-            'Posthoc_Matrix_printed': [[self.make_p_value_printed(element) for element in row] for row in self.posthoc_matrix] if self.posthoc_matrix else 'N/A',
-            'Posthoc_Matrix_stars': [[self.make_stars_printed(self.make_stars(element)) for element in row] for row in self.posthoc_matrix] if self.posthoc_matrix else 'N/A',
+            'Posthoc_Tests_Name': self.posthoc_name if self.posthoc_name is not None else '',
+            'Posthoc_Matrix': self.posthoc_matrix if self.posthoc_matrix else [],
+            'Posthoc_Matrix_bool': [[bool(element) for element in row] for row in self.posthoc_matrix] if self.posthoc_matrix else [],
+            'Posthoc_Matrix_printed': [[self.make_p_value_printed(element) for element in row] for row in self.posthoc_matrix] if self.posthoc_matrix else [],
+            'Posthoc_Matrix_stars': [[self.make_stars_printed(self.make_stars(element)) for element in row] for row in self.posthoc_matrix] if self.posthoc_matrix else [],
         }
 
     def log(self, *args, **kwargs):

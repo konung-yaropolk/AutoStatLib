@@ -84,26 +84,30 @@ results = analysis.GetResult()
 The results dictionary keys with representing value types:
 ```
 {
-    'p-value':                     String
-    'Significance(p<0.05)':        Boolean
-    'Stars_Printed':               String
-    'Test_Name':                   String
-    'Groups_Compared':             Integer
-    'Population_Mean':             Float   (taken from the input)
-    'Data_Normaly_Distributed':    Boolean
-    'Parametric_Test_Applied':     Boolean
-    'Paired_Test_Applied':         Boolean
-    'Tails':                       Integer (taken from the input)
-    'p-value_exact':               Float
-    'Stars':                       Integer
-    'Warnings':                    String
-    'Groups_N':                    List of integers
-    'Groups_Median':               List of floats
-    'Groups_Mean':                 List of floats
-    'Groups_SD':                   List of floats
-    'Groups_SE':                   List of floats
-    'Samples':                     List of input values by groups
+    'p-value' :                    String
+    'Significance(p<0.05)' :       Boolean
+    'Stars_Printed' :              String
+    'Test_Name' :                  String
+    'Groups_Compared' :            Integer
+    'Population_Mean' :            Float   (taken from the input)
+    'Data_Normaly_Distributed' :   Boolean
+    'Parametric_Test_Applied' :    Boolean
+    'Paired_Test_Applied' :        Boolean
+    'Tails' :                      Integer (taken from the input)
+    'p-value_exact' :              Float
+    'Stars' :                      Integer
+    'Warnings' :                   String
+    'Groups_N' :                   List of integers
+    'Groups_Median' :              List of floats
+    'Groups_Mean' :                List of floats
+    'Groups_SD' :                  List of floats
+    'Groups_SE' :                  List of floats
+    'Samples' :                    List of input values by groups
                                            (taken from the input)
+    'Posthoc_Matrix' :             2D List of floats
+    'Posthoc_Matrix_bool' :        2D List of Boolean
+    'Posthoc_Matrix_printed':      2D List of String
+    'Posthoc_Matrix_stars':        2D List of String
 }
 ```
 If errors occured, *GetResult()* returns an empty dictionary

@@ -51,22 +51,26 @@ class TextFormatting():
                 break
             self.log(self.autospace(row_values, space))
 
-    def make_stars(self, p) -> int:
-        if p is not None:
-            if p < 0.0001:
-                return 4
-            if p < 0.001:
-                return 3
-            elif p < 0.01:
-                return 2
-            elif p < 0.05:
-                return 1
+    def print_results(self):
+        self.log('\n\nResults: \n')
+        for i in self.results:
+            shift = 27 - len(i)
+            if i == 'Warnings':
+                self.log(i, ':', ' ' * shift, len(self.results[i]))
+            elif i == 'Posthoc_Tests_Name':
+                self.log(i, ':', ' ' * shift,
+                         self.results[i]) if self.results[i] != '' else 'N/A'
+            elif i == 'Posthoc_Matrix':
+                self.log(i, ':', ' ' * shift, '{0}x{0} matrix'.format(
+                    len(self.results[i])) if self.results[i] else 'N/A')
+            elif (i == 'Samples'
+                  or i == 'Posthoc_Matrix_bool'
+                  or i == 'Posthoc_Matrix_printed'
+                  or i == 'Posthoc_Matrix_stars'
+                  ):
+                pass
             else:
-                return 0
-        return 0
-
-    def make_stars_printed(self, n) -> str:
-        return '*' * n if n else 'ns'
+                self.log(i, ':', ' ' * shift, self.results[i])
 
     def make_p_value_printed(self, p) -> str:
         if p is not None:
@@ -84,15 +88,19 @@ class TextFormatting():
                 return 'N/A'
         return 'N/A'
 
-    def print_results(self):
-        self.log('\n\nResults: \n')
-        for i in self.results:
-            shift = 27 - len(i)
-            if i == 'Warnings':
-                self.log(i, ':', ' ' * shift, len(self.results[i]))
-            if i == 'Posthoc_Matrix':
-                self.log(i, ':', ' ' * shift, '{0}x{0} matrix'.format(len(self.results[i])))
-            elif i == 'Samples' or i == 'Posthoc_Matrix_printed' or i == 'Posthoc_Matrix_stars':
-                pass
+    def make_stars(self, p) -> int:
+        if p is not None:
+            if p < 0.0001:
+                return 4
+            if p < 0.001:
+                return 3
+            elif p < 0.01:
+                return 2
+            elif p < 0.05:
+                return 1
             else:
-                self.log(i, ':', ' ' * shift, self.results[i])
+                return 0
+        return 0
+
+    def make_stars_printed(self, n) -> str:
+        return '*' * n if n else 'ns'

@@ -20,7 +20,7 @@ class NormalityTests():
 
         # Shapiro-Wilk test
         sw_stat, sw_p_value = shapiro(data)
-        if sw_p_value > 0.05:
+        if sw_p_value and sw_p_value > 0.05:
             sw = True
         else:
             sw = False
@@ -28,7 +28,7 @@ class NormalityTests():
         # Lilliefors test
         lf_stat, lf_p_value = lilliefors(
             data, dist='norm')
-        if lf_p_value > 0.05:
+        if lf_p_value and lf_p_value > 0.05:
             lf = True
         else:
             lf = False
@@ -37,7 +37,7 @@ class NormalityTests():
         if n >= 20:
             ad_stat, ad_p_value = self.anderson_get_p(
                 data, dist='norm')
-            if ad_p_value > 0.05:
+            if ad_p_value and ad_p_value > 0.05:
                 ad = True
             else:
                 ad = False
@@ -46,12 +46,10 @@ class NormalityTests():
         # test result is skewed if n<20
         if n >= 20:
             ap_stat, ap_p_value = normaltest(data)
-            if ap_p_value > 0.05:
+            if ap_p_value and ap_p_value > 0.05:
                 ap = True
             else:
                 ap = False
-
-        # print(ap_p_value, ad_p_value, sw_p_value, lf_p_value)
 
         return (sw, lf, ad, ap)
 

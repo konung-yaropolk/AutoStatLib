@@ -1,8 +1,8 @@
 import numpy as np
 import scikit_posthocs as sp
 from statsmodels.stats.anova import AnovaRM
+from statsmodels.stats.multicomp import pairwise_tukeyhsd
 from scipy.stats import ttest_rel, ttest_ind, ttest_1samp, wilcoxon, mannwhitneyu, f_oneway, kruskal, friedmanchisquare
-
 
 
 class StatisticalTests():
@@ -50,7 +50,7 @@ class StatisticalTests():
         test_names_dict = {
             'anova_1w_ordinary': 'Ordinary One-Way ANOVA',
             'anova_1w_rm': 'Repeated Measures One-Way ANOVA',
-            'friedman': 'Friedman test', 
+            'friedman': 'Friedman test',
             'kruskal_wallis': 'Kruskal-Wallis test',
             'mann_whitney': 'Mann-Whitney U test',
             't_test_independent': 't-test for independent samples',
@@ -89,6 +89,15 @@ class StatisticalTests():
         #     p_value /= 2
         # if self.tails == 1:
         #     p_value /= 2
+
+        # if p_value < 0.05 and self.posthoc:
+        #     data_flat = np.concatenate(self.data)
+        #     self.posthoc_name = 'Tukey`s multiple comparisons'
+        #     group_labels = np.concatenate(
+        #         [[f"Group_{i+1}"] * len(group) for i, group in enumerate(self.data)])
+        #     # Tukey's multiple comparisons
+        #     tukey_result = pairwise_tukeyhsd(data_flat, group_labels)
+        #     print(tukey_result)
         return stat, p_value
 
     def anova_1w_rm(self):
@@ -117,7 +126,9 @@ class StatisticalTests():
 
         # Perform Dunn's multiple comparisons if Kruskal-Wallis is significant
         if p_value < 0.05 and self.posthoc:
-            self.posthoc_matrix = sp.posthoc_dunn(self.data, p_adjust='bonferroni').values.tolist()
+            self.posthoc_matrix = sp.posthoc_dunn(
+                self.data, p_adjust='bonferroni').values.tolist()
+            self.posthoc_name = 'Dunn`s multiple comparisons'
         return stat, p_value
 
     def mann_whitney(self):
@@ -161,7 +172,7 @@ class StatisticalTests():
         if self.tails == 1:
             p_value /= 2
         return stat, p_value
-        
+
     def wilcoxon_single_sample(self):
         if self.popmean == None:
             self.popmean = 0

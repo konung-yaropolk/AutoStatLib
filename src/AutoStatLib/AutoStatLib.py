@@ -16,7 +16,7 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
                  paired=False,
                  tails=2,
                  popmean=None,
-                 posthoc=False,
+                 posthoc=True,
                  verbose=True):
         self.results = None
         self.error = False
@@ -92,6 +92,7 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
         self.p_value = None
         self.posthoc_matrix_df = None
         self.posthoc_matrix = []
+        self.posthoc_name = None
 
         self.log('\n' + '-'*67)
         self.log('Statistical analysis __init__iated for data in {} groups\n'.format(
@@ -174,7 +175,6 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
         else:
             self.run_test_auto()
 
-
         # print the results
         self.results = self.create_results_dict()
         self.print_results()
@@ -186,9 +186,8 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
         if self.verbose == True:
             print(self.summary)
 
-
-
     # public methods:
+
     def RunAuto(self):
         self.run_test(test='auto')
 
