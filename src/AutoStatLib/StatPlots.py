@@ -20,7 +20,7 @@ class Helpers():
         # If a colormap is provided, use it;
         # else generate default one with n_colors colors
         # (the best color combination is 9 imho)
-        # but we cat change it later
+        # but we can change it later
         if colormap:
             colors_edge = [c if color.is_color_like(
                 c) else 'k' for c in colormap]
