@@ -114,8 +114,12 @@ class BaseStatPlot(Helpers):
         self.x_manual_tick_labels = x_manual_tick_labels if x_manual_tick_labels is not None else [
             '']
 
-        colormap = colormap if colormap is not None and colormap != [
-            ''] else []
+        if colormap is not None and colormap != ['']:
+            colormap = colormap
+            self.colormap_default = False
+        else:
+            colormap = []
+            self.colormap_default = True
         self.colors_edge, self.colors_fill = self.get_colors(colormap)
 
         self.y_max = max([max(data) for data in self.data_groups])
@@ -155,8 +159,8 @@ class BaseStatPlot(Helpers):
         # Plot bar for mean
         ax.bar(x, self.mean[x],
                width=0.75,
-               edgecolor=self.colors_edge[x % len(self.colors_edge)],
                facecolor=self.colors_fill[x % len(self.colors_fill)],
+               edgecolor=self.colors_edge[x % len(self.colors_edge)],
                fill=fill,
                linewidth=linewidth,
                zorder=zorder)
@@ -301,29 +305,36 @@ class BaseStatPlot(Helpers):
         if meanLineWidth != None:
             meanProps['linewidth'] = meanLineWidth
 
-        ax.boxplot(self.data_groups,
-                   positions=positions,
-                   widths=widths,
-                   # tick_labels=tickLabels,
-                   notch=notch,
-                   conf_intervals=confidences,
-                   sym=fliersMarker,
-                   flierprops=flierProps,
-                   vert=vertical,
-                   whis=whiskers,
-                   whiskerprops=whiskersProps,
-                   showcaps=showWhiskersCaps,
-                   capwidths=whiskersCapsWidths,
-                   capprops=whiskersCapsStyles,
-                   boxprops=boxProps,
-                   usermedians=userMedians,
-                   medianprops=medianProps,
-                   bootstrap=bootstrap,
-                   showmeans=showMeans,
-                   meanline=meanLine,
-                   meanprops=meanProps,
-                   autorange=autorange,
-                   patch_artist=True)
+        bplot = ax.boxplot(self.data_groups,
+                           positions=positions,
+                           widths=widths,
+                           # tick_labels=tickLabels,
+                           notch=notch,
+                           conf_intervals=confidences,
+                           sym=fliersMarker,
+                           flierprops=flierProps,
+                           vert=vertical,
+                           whis=whiskers,
+                           whiskerprops=whiskersProps,
+                           showcaps=showWhiskersCaps,
+                           capwidths=whiskersCapsWidths,
+                           capprops=whiskersCapsStyles,
+                           boxprops=boxProps,
+                           usermedians=userMedians,
+                           medianprops=medianProps,
+                           bootstrap=bootstrap,
+                           showmeans=showMeans,
+                           meanline=meanLine,
+                           meanprops=meanProps,
+                           autorange=autorange,
+                           patch_artist=True)
+
+        # apply use r colormap if provided
+        # else left white face with black border
+        if not self.colormap_default:
+            for x, patch in enumerate(bplot['boxes']):
+                patch.set_facecolor(
+                    self.colors_fill[x % len(self.colors_fill)])
 
     def add_errorbar_sd(self, ax, x,
                         capsize=8,

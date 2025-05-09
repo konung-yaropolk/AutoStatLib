@@ -1,6 +1,5 @@
 import numpy as np
 import AutoStatLib
-from statplots import *
 
 
 # Example usage:
@@ -57,14 +56,14 @@ analysis.RunKruskalWallis()
 results = analysis.GetResult()
 
 
-plot = BoxStatPlot(data,
-                   # p=results['p-value_exact'],
-                   testname=results['Test_Name'],
-                   posthoc_matrix=results['Posthoc_Matrix'],
-                   #    dependent=dependent,
-                   #    y_label=y_label,
-                   #    x_manual_tick_labels=x_manual_tick_labels,
-                   )
+plot = AutoStatLib.StatPlots.BoxStatPlot(data,
+                                         # p=results['p-value_exact'],
+                                         testname=results['Test_Name'],
+                                         posthoc_matrix=results['Posthoc_Matrix'],
+                                         #    dependent=dependent,
+                                         #    y_label=y_label,
+                                         #    x_manual_tick_labels=x_manual_tick_labels,
+                                         )
 
 plot.plot()
 plot.show()
