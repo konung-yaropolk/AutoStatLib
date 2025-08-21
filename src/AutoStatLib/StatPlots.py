@@ -105,10 +105,10 @@ class BaseStatPlot(Helpers):
         self.sd = [
             np.std(self.data_groups[i]).item() for i in range(self.n_groups)]
 
-        if self.n_groups != 0:
+        try:
             self.sem = [np.std(self.data_groups[i]).item() / np.sqrt(len(self.data_groups[i])).item()
                         for i in range(self.n_groups)]
-        else:
+        except ZeroDivisionError:
             self.sem = [self.data_groups]
 
         self.n = [len(i) for i in self.data_groups]
