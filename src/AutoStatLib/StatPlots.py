@@ -534,6 +534,9 @@ class BaseStatPlot(Helpers):
     def save(self, path):
         plt.savefig(path)
 
+    def close(self):
+        plt.close()
+
     def plot(self):
         # Abstract method—each subclass must implement its own plot method
         raise NotImplementedError(
