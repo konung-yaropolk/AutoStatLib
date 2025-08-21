@@ -95,7 +95,7 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
         self.posthoc_name = None
 
         self.log('\n' + '-'*67)
-        self.log('Statistical analysis __init__iated for data in {} groups\n'.format(
+        self.log('Statistical analysis initiated for data in {} groups\n'.format(
             len(self.groups_list)))
 
         # adjusting input data type
