@@ -1,5 +1,7 @@
 numpy
 scipy
 statsmodels
+matplotlib
+addcopyfighandler
 scikit-posthocs
 pandas
