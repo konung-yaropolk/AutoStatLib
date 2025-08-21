@@ -85,7 +85,8 @@ class BaseStatPlot(Helpers):
                  posthoc_matrix=[],
                  colormap=None,
                  **kwargs):
-        self.data_groups = data_groups
+        self.data_groups = [group if group else [0, 0, 0, 0]
+                            for group in data_groups]
         self.n_groups = len(self.data_groups)
         self.p = p
         self.testname = testname
@@ -104,12 +105,8 @@ class BaseStatPlot(Helpers):
             np.median(self.data_groups[i]).item() for i in range(self.n_groups)]
         self.sd = [
             np.std(self.data_groups[i]).item() for i in range(self.n_groups)]
-
-        try:
-            self.sem = [np.std(self.data_groups[i]).item() / np.sqrt(len(self.data_groups[i])).item()
-                        for i in range(self.n_groups)]
-        except ZeroDivisionError:
-            self.sem = [self.data_groups]
+        self.sem = [np.std(self.data_groups[i]).item() / np.sqrt(len(self.data_groups[i])).item()
+                    for i in range(self.n_groups)]
 
         self.n = [len(i) for i in self.data_groups]
         self.p_printed = self.make_p_value_printed(self.p)
