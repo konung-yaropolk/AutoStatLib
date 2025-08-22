@@ -4,7 +4,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import matplotlib.colors as color
-import addcopyfighandler
 
 
 class Helpers():

@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=62.6", "numpy", "scipy", "statsmodels", "matplotlib", "addcopyfighandler", "scikit-posthocs", "pandas"]
+requires = ["setuptools>=62.6", "numpy", "scipy", "statsmodels", "matplotlib", "scikit-posthocs", "pandas"]
 build-backend = "setuptools.build_meta"
 
 [project]
