@@ -41,7 +41,7 @@ class Helpers():
         self.stars_str = self.make_stars_printed(self.stars_int)
 
         return {
-            'p-value': self.make_p_value_printed(self.p_value.item()),
+            'p_value': self.make_p_value_printed(self.p_value.item()),
             'Significance(p<0.05)':  True if self.p_value.item() < 0.05 else False,
             'Stars_Printed': self.stars_str,
             'Test_Name': self.test_name,
@@ -51,7 +51,7 @@ class Helpers():
             'Parametric_Test_Applied': True if self.test_id in self.test_ids_parametric else False,
             'Paired_Test_Applied': self.paired,
             'Tails': self.tails,
-            'p-value_exact': self.p_value.item(),
+            'p_value_exact': self.p_value.item(),
             'Stars':  self.stars_int,
             # 'Stat_Value': self.test_stat.item(),
             'Warnings': self.warnings,

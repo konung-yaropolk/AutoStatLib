@@ -1,7 +1,9 @@
 import numpy as np
+import itertools
 import scikit_posthocs as sp
 from statsmodels.stats.anova import AnovaRM
 from statsmodels.stats.multicomp import pairwise_tukeyhsd
+from statsmodels.stats.multitest import multipletests
 from scipy.stats import ttest_rel, ttest_ind, ttest_1samp, wilcoxon, mannwhitneyu, f_oneway, kruskal, friedmanchisquare
 
 
@@ -90,14 +92,19 @@ class StatisticalTests():
         # if self.tails == 1:
         #     p_value /= 2
 
-        # if p_value < 0.05 and self.posthoc:
-        #     data_flat = np.concatenate(self.data)
-        #     self.posthoc_name = 'Tukey`s multiple comparisons'
-        #     group_labels = np.concatenate(
-        #         [[f"Group_{i+1}"] * len(group) for i, group in enumerate(self.data)])
-        #     # Tukey's multiple comparisons
-        #     tukey_result = pairwise_tukeyhsd(data_flat, group_labels)
-        #     print(tukey_result)
+        if self.posthoc:  # and p_value < 0.05:
+            data_flat = np.concatenate(self.data)
+            self.posthoc_name = 'Tukey`s posthoc'
+            group_labels = np.concatenate(
+                [[f"Group_{i+1}"] * len(group) for i, group in enumerate(self.data)])
+            # Tukey's multiple comparisons
+            tukey_result = pairwise_tukeyhsd(data_flat, group_labels)
+            p = tukey_result.pvalues.tolist()
+            self.posthoc_matrix = [
+                [p[2], p[0], p[1]],
+                [p[0], p[2], p[2]],
+                [p[1], p[2], p[2]],
+            ]
         return stat, p_value
 
     def anova_1w_rm(self):
@@ -110,8 +117,25 @@ class StatisticalTests():
 
         df = self.matrix_to_dataframe(self.data)
         res = AnovaRM(df, 'Value', 'Row', within=['Col']).fit()
-        stat = res.anova_table['F Value'][0]
-        p_value = res.anova_table['Pr > F'][0]
+        print(res)
+        stat = res.anova_table.iloc[0][0]
+        p_value = res.anova_table.iloc[0][3]
+
+        # # --- Posthocs: paired t-tests ---
+        # wide = df.pivot(index='Row', columns='Col', values='Value')
+        # conds = wide.columns
+        # pairs = list(itertools.combinations(conds, 2))
+
+        # pvals, stats = [], []
+        # for a, b in pairs:
+        #     t, p = ttest_rel(wide[a], wide[b])
+        #     stats.append(t)
+        #     pvals.append(p)
+
+        # # Adjust p-values
+        # rej, p_corr, _, _ = multipletests(pvals, method='bonferroni')
+
+        # print(p_corr)
 
         self.tails = 2
         return stat, p_value
@@ -125,10 +149,11 @@ class StatisticalTests():
         stat, p_value = kruskal(*self.data)
 
         # Perform Dunn's multiple comparisons if Kruskal-Wallis is significant
-        if p_value < 0.05 and self.posthoc:
+        if self.posthoc:  # and p_value < 0.05:
             self.posthoc_matrix = sp.posthoc_dunn(
                 self.data, p_adjust='bonferroni').values.tolist()
-            self.posthoc_name = 'Dunn`s multiple comparisons'
+            self.posthoc_name = 'Dunn`s posthoc'
+        self.tails = 2
         return stat, p_value
 
     def mann_whitney(self):

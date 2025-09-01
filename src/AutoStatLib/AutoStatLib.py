@@ -2,6 +2,7 @@ from AutoStatLib.statistical_tests import StatisticalTests
 from AutoStatLib.normality_tests import NormalityTests
 from AutoStatLib.helpers import Helpers
 from AutoStatLib.text_formatting import TextFormatting
+from AutoStatLib._version import __version__
 
 
 class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Helpers):
@@ -16,7 +17,7 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
                  paired=False,
                  tails=2,
                  popmean=None,
-                 posthoc=True,
+                 posthoc=False,
                  verbose=True):
         self.results = None
         self.error = False
@@ -28,7 +29,7 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
         self.verbose = verbose
         self.n_groups = len(self.groups_list)
         self.warning_flag_non_numeric_data = False
-        self.summary = ''
+        self.summary = 'AutoStatLib v{}'.format(__version__)
 
         # test IDs classification:
         self.test_ids_all = [  # in aplhabetical order
@@ -86,13 +87,13 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
         self.error = False
         self.warnings = []
         self.normals = []
-        self.test_name = None
+        self.test_name = ''
         self.test_id = None
         self.test_stat = None
         self.p_value = None
         self.posthoc_matrix_df = None
         self.posthoc_matrix = []
-        self.posthoc_name = None
+        self.posthoc_name = ''
 
         self.log('\n' + '-'*67)
         self.log('Statistical analysis initiated for data in {} groups\n'.format(

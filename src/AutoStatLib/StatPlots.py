@@ -74,28 +74,34 @@ class BaseStatPlot(Helpers):
 
     def __init__(self,
                  data_groups,
-                 p=None,
-                 testname='',
-                 dependent=False,
+                 p_value_exact=None,
+                 Test_Name='',
+                 Paired_Test_Applied=False,
                  plot_title='',
                  x_label='',
                  y_label='',
                  print_x_labels=True,
                  x_manual_tick_labels=None,
-                 posthoc_matrix=[],
+                 Posthoc_Matrix=[],
+                 Posthoc_Tests_Name='',
                  colormap=None,
+                 print_p_label=True,
+                 print_stars=True,
                  **kwargs):
         self.data_groups = [group if group else [0, 0, 0, 0]
                             for group in data_groups]
         self.n_groups = len(self.data_groups)
-        self.p = p
-        self.testname = testname
-        self.posthoc_matrix = posthoc_matrix
+        self.p = p_value_exact
+        self.testname = Test_Name
+        self.posthoc_name = Posthoc_Tests_Name
+        self.posthoc_matrix = Posthoc_Matrix
         self.n_significance_bars = 1
-        self.dependent = dependent
+        self.dependent = Paired_Test_Applied
         self.plot_title = plot_title
         self.x_label = x_label
         self.y_label = y_label
+        self.print_p_label = print_p_label
+        self.print_stars = print_stars
         self.print_x_labels = print_x_labels
 
         #  sd sem mean and median calculation if they are not provided
@@ -396,9 +402,7 @@ class BaseStatPlot(Helpers):
     def add_significance_bars(self, ax,
                               linewidth=2,
                               capsize=0.01,
-                              col='k',
-                              label=''):
-        '''label can be "p", "s", "both"'''
+                              col='k'):
 
         # # Estimate how many bars needed
         # self.n_significance_bars = comb(
@@ -409,25 +413,28 @@ class BaseStatPlot(Helpers):
         posthoc_matrix_stars = [[self.make_stars_printed(self.make_stars(element)) for element in row]
                                 for row in self.posthoc_matrix] if self.posthoc_matrix else []
 
-        def draw_bar(p, stars, order=0, x1=0, x2=self.n_groups-1, capsize=capsize, linewidth=linewidth, col=col, label=label):
-            if label == 'p':
-                vspace = capsize+0.03
-                label = '{}'.format(p)
-            elif label == 's':
-                vspace = capsize+0.03
-                label = '{}'.format(stars)
-            else:
-                vspace = capsize+0.06
-                label = '{}\n{}'.format(p, stars)
+        def draw_bar(p, stars, order=0, x1=0, x2=self.n_groups-1, capsize=capsize, linewidth=linewidth, col=col):
 
-            # Draw significance bar connecting x1 and x2 coords
-            y, h = ((1.05 + (order*vspace)) *
-                    self.y_max), capsize * self.y_max
-            ax.plot([x1, x1, x2, x2], [y, y + h, y + h, y],
-                    lw=linewidth, c=col)
+            match (self.print_p_label, self.print_stars):
+                case (True, True):
+                    vspace = capsize+0.06
+                    label = '{}\n{}'.format(p, stars)
+                case (True, False):
+                    vspace = capsize+0.03
+                    label = '{}'.format(p)
+                case (False, True):
+                    vspace = capsize+0.03
+                    label = '{}'.format(stars)
 
-            ax.text((x1 + x2) * 0.5, y + h, label,
-                    ha='center', va='bottom', color=col, fontweight='bold', fontsize=8)
+            if self.print_p_label or self.print_stars:
+                # Draw significance bar connecting x1 and x2 coords
+                y, h = ((1.05 + (order*vspace)) *
+                        self.y_max), capsize * self.y_max
+                ax.plot([x1, x1, x2, x2], [y, y + h, y + h, y],
+                        lw=linewidth, c=col)
+
+                ax.text((x1 + x2) * 0.5, y + h, label,
+                        ha='center', va='bottom', color=col, fontweight='bold', fontsize=8)
 
         def draw_bar_from_posthoc_matrix(x1, x2, o):
             draw_bar(
@@ -524,8 +531,8 @@ class BaseStatPlot(Helpers):
         if self.y_label:
             ax.set_ylabel(self.y_label, fontsize=10, fontweight='bold')
         fig.text(0.95, 0.0,
-                 '{}\nn={}'.format(self.testname,
-                                   str(self.n)[1:-1] if not self.dependent else str(self.n[0])),
+                 '{}, {}\nn={}'.format(self.testname, self.posthoc_name,
+                                       str(self.n)[1:-1] if not self.dependent else str(self.n[0])),
                  ha='right', va='bottom', fontsize=8, fontweight='regular')
 
     def show(self):

@@ -41,10 +41,10 @@ analysis = AutoStatLib.StatisticalAnalysis(
 
 # # 3 and more independed groups comparison:
 # analysis.RunOnewayAnova()
-analysis.RunKruskalWallis()
+# analysis.RunKruskalWallis()
 
 # # 3 and more depended groups comparison:
-# analysis.RunOnewayAnovaRM()
+analysis.RunOnewayAnovaRM()
 # analysis.RunFriedman()
 
 # # single group tests"
@@ -56,10 +56,7 @@ analysis.RunKruskalWallis()
 results = analysis.GetResult()
 
 
-plot = AutoStatLib.StatPlots.BoxStatPlot(data,
-                                         # p=results['p-value_exact'],
-                                         testname=results['Test_Name'],
-                                         posthoc_matrix=results['Posthoc_Matrix'],
+plot = AutoStatLib.StatPlots.BarStatPlot(results['Samples'], **results
                                          #    dependent=dependent,
                                          #    y_label=y_label,
                                          #    x_manual_tick_labels=x_manual_tick_labels,
