@@ -87,6 +87,9 @@ class BaseStatPlot(Helpers):
                  colormap=None,
                  print_p_label=True,
                  print_stars=True,
+                 figure_scale_factor=1,
+                 figure_h=4,
+                 figure_w=0,  # 0 means auto
                  **kwargs):
         self.data_groups = [group if group else [0, 0, 0, 0]
                             for group in data_groups]
@@ -103,6 +106,9 @@ class BaseStatPlot(Helpers):
         self.print_p_label = print_p_label
         self.print_stars = print_stars
         self.print_x_labels = print_x_labels
+        self.figure_scale_factor = figure_scale_factor
+        self.figure_h = figure_h
+        self.figure_w = figure_w
 
         #  sd sem mean and median calculation if they are not provided
         self.mean = [
@@ -132,13 +138,22 @@ class BaseStatPlot(Helpers):
         self.y_max = max([max(data) for data in self.data_groups])
 
     def setup_figure(self, ):
-        fig, ax = plt.subplots(figsize=(0.5 + 0.9 * self.n_groups, 4))
+        fig, ax = plt.subplots(
+            dpi=100,
+            figsize=((0.5 + 0.9 * self.n_groups)
+                     if not self.figure_w else self.figure_w, self.figure_h)
+        )
+
+        figure_size = plt.gcf().get_size_inches()
+        plt.gcf().set_size_inches(self.figure_scale_factor * figure_size)
+
         return fig, ax
 
     def add_scatter(self, ax,
                     color='k',
                     alpha=0.5,
                     marker='o',
+                    markersize=6,
                     linewidth=1,
                     zorder=1):
         # Generate x jitter pool.
@@ -153,7 +168,8 @@ class BaseStatPlot(Helpers):
                     color=color,
                     alpha=alpha,
                     marker=marker,
-                    linewidth=linewidth,
+                    markersize=markersize*self.figure_scale_factor,
+                    linewidth=linewidth*self.figure_scale_factor,
                     # Connect the data points if desired.
                     linestyle='-' if self.dependent else '',
                     zorder=zorder)
@@ -169,7 +185,7 @@ class BaseStatPlot(Helpers):
                facecolor=self.colors_fill[x % len(self.colors_fill)],
                edgecolor=self.colors_edge[x % len(self.colors_edge)],
                fill=fill,
-               linewidth=linewidth,
+               linewidth=linewidth*self.figure_scale_factor,
                zorder=zorder)
 
     def add_violinplot(self, ax, x,
@@ -189,7 +205,7 @@ class BaseStatPlot(Helpers):
         for pc in vp['bodies']:
             pc.set_facecolor(self.colors_fill[x % len(self.colors_fill)])
             pc.set_edgecolor(self.colors_edge[x % len(self.colors_edge)])
-            pc.set_linewidth(linewidth)
+            pc.set_linewidth(linewidth*self.figure_scale_factor)
 
     def add_boxplot(self, ax,
                     # positions of boxes, defaults to range(1,n+1)
@@ -352,9 +368,9 @@ class BaseStatPlot(Helpers):
         ax.errorbar(x, self.mean[x],
                     yerr=self.sd[x],
                     fmt='none',
-                    capsize=capsize,
+                    capsize=capsize*self.figure_scale_factor,
                     ecolor=ecolor,
-                    linewidth=linewidth,
+                    linewidth=linewidth*self.figure_scale_factor,
                     zorder=zorder)
 
     def add_errorbar_sem(self, ax, x,
@@ -366,9 +382,10 @@ class BaseStatPlot(Helpers):
         ax.errorbar(x, self.mean[x],
                     yerr=self.sem[x],
                     fmt='none',
-                    capsize=capsize,
+                    capsize=capsize*self.figure_scale_factor,
                     ecolor=ecolor,
-                    linewidth=linewidth,
+                    linewidth=linewidth*self.figure_scale_factor,
+                    elinewidth=linewidth*self.figure_scale_factor,
                     zorder=zorder)
 
     def add_mean_marker(self, ax, x,
@@ -382,8 +399,8 @@ class BaseStatPlot(Helpers):
                 marker=marker,
                 markerfacecolor=markerfacecolor,
                 markeredgecolor=markeredgecolor,
-                markersize=markersize,
-                markeredgewidth=markeredgewidth)
+                markersize=markersize*self.figure_scale_factor,
+                markeredgewidth=markeredgewidth*self.figure_scale_factor)
 
     def add_median_marker(self, ax, x,
                           marker='x',
@@ -396,8 +413,8 @@ class BaseStatPlot(Helpers):
                 marker=marker,
                 markerfacecolor=markerfacecolor,
                 markeredgecolor=markeredgecolor,
-                markersize=markersize,
-                markeredgewidth=markeredgewidth)
+                markersize=markersize*self.figure_scale_factor,
+                markeredgewidth=markeredgewidth*self.figure_scale_factor)
 
     def add_significance_bars(self, ax,
                               linewidth=2,
@@ -417,13 +434,13 @@ class BaseStatPlot(Helpers):
 
             match (self.print_p_label, self.print_stars):
                 case (True, True):
-                    vspace = capsize+0.06
+                    vspace = (capsize+0.06)*self.figure_scale_factor
                     label = '{}\n{}'.format(p, stars)
                 case (True, False):
-                    vspace = capsize+0.03
+                    vspace = (capsize+0.03)*self.figure_scale_factor
                     label = '{}'.format(p)
                 case (False, True):
-                    vspace = capsize+0.03
+                    vspace = (capsize+0.03)*self.figure_scale_factor
                     label = '{}'.format(stars)
 
             if self.print_p_label or self.print_stars:
@@ -431,10 +448,10 @@ class BaseStatPlot(Helpers):
                 y, h = ((1.05 + (order*vspace)) *
                         self.y_max), capsize * self.y_max
                 ax.plot([x1, x1, x2, x2], [y, y + h, y + h, y],
-                        lw=linewidth, c=col)
+                        lw=linewidth*self.figure_scale_factor, c=col)
 
                 ax.text((x1 + x2) * 0.5, y + h, label,
-                        ha='center', va='bottom', color=col, fontweight='bold', fontsize=8)
+                        ha='center', va='bottom', color=col, fontweight='bold', fontsize=8*self.figure_scale_factor)
 
         def draw_bar_from_posthoc_matrix(x1, x2, o):
             draw_bar(
@@ -506,7 +523,7 @@ class BaseStatPlot(Helpers):
             else:
                 ax.set_xticks(range(self.n_groups))
                 ax.set_xticklabels(['Group {}'.format(i + 1)
-                                   for i in range(self.n_groups)], fontweight='regular', fontsize=8)
+                                   for i in range(self.n_groups)], fontweight='regular', fontsize=8*self.figure_scale_factor)
         else:
             plt.subplots_adjust(bottom=0.08)
             ax.tick_params(axis='x', which='both',
@@ -515,31 +532,37 @@ class BaseStatPlot(Helpers):
         # Additional formatting
         for ytick in ax.get_yticklabels():
             ytick.set_fontweight('bold')
-        ax.tick_params(width=linewidth)
-        ax.xaxis.set_tick_params(labelsize=10)
-        ax.yaxis.set_tick_params(labelsize=12)
-        ax.spines['left'].set_linewidth(linewidth)
+        ax.tick_params(width=linewidth*self.figure_scale_factor)
+        ax.xaxis.set_tick_params(labelsize=10*self.figure_scale_factor)
+        ax.yaxis.set_tick_params(labelsize=12*self.figure_scale_factor)
+        ax.spines['left'].set_linewidth(linewidth*self.figure_scale_factor)
         ax.tick_params(axis='y', which='both',
-                       length=linewidth * 2, width=linewidth)
+                       length=linewidth * 2*self.figure_scale_factor, width=linewidth*self.figure_scale_factor)
         ax.tick_params(axis='x', which='both', length=0)
 
     def add_titles_and_labels(self, fig, ax):
         if self.plot_title:
-            ax.set_title(self.plot_title, fontsize=12, fontweight='bold')
+            ax.set_title(self.plot_title, fontsize=12 *
+                         self.figure_scale_factor, fontweight='bold')
         if self.x_label:
-            ax.set_xlabel(self.x_label, fontsize=10, fontweight='bold')
+            ax.set_xlabel(self.x_label, fontsize=10 *
+                          self.figure_scale_factor, fontweight='bold')
         if self.y_label:
-            ax.set_ylabel(self.y_label, fontsize=10, fontweight='bold')
+            ax.set_ylabel(self.y_label, fontsize=10 *
+                          self.figure_scale_factor, fontweight='bold')
         fig.text(0.95, 0.0,
-                 '{}, {}\nn={}'.format(self.testname, self.posthoc_name,
-                                       str(self.n)[1:-1] if not self.dependent else str(self.n[0])),
-                 ha='right', va='bottom', fontsize=8, fontweight='regular')
+                 '{}{}\nn={}'.format(self.testname, (', ' + self.posthoc_name) if self.posthoc_name else '',
+                                     str(self.n)[1:-1] if not self.dependent else str(self.n[0])),
+                 ha='right', va='bottom', fontsize=8*self.figure_scale_factor, fontweight='regular')
 
     def show(self):
         plt.show()
 
     def save(self, path):
-        plt.savefig(path)
+        plt.savefig(path,
+                    pad_inches=0.1*self.figure_scale_factor,
+                    transparent=True,
+                    )
 
     def close(self):
         plt.close()
