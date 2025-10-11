@@ -7,13 +7,13 @@ import AutoStatLib
 # %%# generate random normal data:
 groups = 3
 n = 20
-# data = [list(np.random.normal(.5*i + 4, abs(1-.2*i), n))
-#         for i in range(groups)]
+data = [list(np.random.normal(.5*i + 4, abs(1-.2*i), n))
+        for i in range(groups)]
 
 # %%# generate random non-normal data:
 # groups = 2
 # n = 30
-data = [list(np.random.uniform(i+3, i+1, n)) for i in range(groups)]
+# data = [list(np.random.uniform(i+3, i+1, n)) for i in range(groups)]
 
 
 # %%# set the parameters:

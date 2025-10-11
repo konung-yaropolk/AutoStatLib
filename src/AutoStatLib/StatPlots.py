@@ -1,3 +1,4 @@
+import seaborn as sns
 import random
 # from math import comb
 import numpy as np
@@ -148,31 +149,6 @@ class BaseStatPlot(Helpers):
         plt.gcf().set_size_inches(self.figure_scale_factor * figure_size)
 
         return fig, ax
-
-    def add_scatter(self, ax,
-                    color='k',
-                    alpha=0.5,
-                    marker='o',
-                    markersize=6,
-                    linewidth=1,
-                    zorder=1):
-        # Generate x jitter pool.
-        spread_pool = []  # storing x positions of data points
-        for i, data in enumerate(self.data_groups):
-            spread = tuple(random.uniform(-.10, .10) for _ in data)
-            spread_pool.append(tuple(i + s for s in spread))
-
-        for i, data in enumerate(self.transpose(self.data_groups)):
-            # Plot individual data points with x jitter.
-            ax.plot(self.transpose(spread_pool)[i], data,
-                    color=color,
-                    alpha=alpha,
-                    marker=marker,
-                    markersize=markersize*self.figure_scale_factor,
-                    linewidth=linewidth*self.figure_scale_factor,
-                    # Connect the data points if desired.
-                    linestyle='-' if self.dependent else '',
-                    zorder=zorder)
 
     def add_barplot(self, ax, x,
                     fill=True,
@@ -358,6 +334,83 @@ class BaseStatPlot(Helpers):
             for x, patch in enumerate(bplot['boxes']):
                 patch.set_facecolor(
                     self.colors_fill[x % len(self.colors_fill)])
+
+    def add_scatter(self, ax,
+                    color='k',
+                    alpha=0.5,
+                    marker='o',
+                    markersize=8,
+                    linewidth=1.2,
+                    zorder=1):
+        # Generate x jitter pool.
+        spread_pool = []  # storing x positions of data points
+        for i, data in enumerate(self.data_groups):
+            spread = tuple(random.uniform(-.10, .10) for _ in data)
+            spread_pool.append(tuple(i + s for s in spread))
+
+        for i, data in enumerate(self.transpose(self.data_groups)):
+            # Plot individual data points with x jitter.
+            ax.plot(self.transpose(spread_pool)[i], data,
+                    color=color,
+                    alpha=alpha,
+                    marker=marker,
+                    markersize=markersize*self.figure_scale_factor,
+                    linewidth=linewidth*self.figure_scale_factor,
+                    # Connect the data points if desired.
+                    linestyle='-' if self.dependent else '',
+                    zorder=zorder)
+
+    def add_swarm(self, ax,
+                  color='grey',
+                  alpha=1,
+                  marker='o',
+                  markersize=8,
+                  linewidth=1.4,
+                  zorder=1):
+        """
+        Add a swarmplot (scatter-like plot with non-overlapping points)
+        to the provided Axes. Automatically reduce point size if overcrowded.
+        """
+
+        # Prepare flattened data
+        values = [v for i, group in enumerate(self.data_groups) for v in group]
+        groups = [i for i, group in enumerate(self.data_groups) for _ in group]
+
+        # Estimate overcrowding for adaptive sizing
+        group_counts = [len(g) for g in self.data_groups]
+        max_points = max(group_counts) if group_counts else 1
+
+        # Determine horizontal space per category
+        num_groups = len(self.data_groups)
+        xlim = ax.get_xlim()
+        width_per_group = (xlim[1] - xlim[0]) / max(num_groups, 1)
+
+        # Empirical density threshold: if points are too dense, shrink
+        density = max_points / (width_per_group + 1e-6)
+
+        # Tunable constants to approximate best function of size adjustment
+        size_scale = max(0.1, min(1, 3.5 / (density ** 0.5)))
+
+        sns.swarmplot(
+            x=groups,
+            y=values,
+            ax=ax,
+            color=color,
+            alpha=alpha,
+            size=markersize * self.figure_scale_factor * size_scale,
+            marker=marker,
+            linewidth=linewidth * self.figure_scale_factor * size_scale,
+            zorder=zorder,
+        )
+
+        # Connect points if data paired
+        if self.dependent == True:
+            for i, data in enumerate(self.transpose(self.data_groups)):
+                ax.plot(range(len(data)), data,
+                        color=color,
+                        alpha=alpha * 0.7,
+                        linewidth=linewidth * self.figure_scale_factor,
+                        zorder=zorder - 1)
 
     def add_errorbar_sd(self, ax, x,
                         capsize=8,
@@ -589,7 +642,7 @@ class BarStatPlot(BaseStatPlot):
             self.add_mean_marker(ax, x)
             self.add_errorbar_sd(ax, x)
 
-        self.add_scatter(ax)
+        self.add_swarm(ax)
         self.add_significance_bars(ax, linewidth)
         self.add_titles_and_labels(fig, ax)
         self.axes_formatting(ax, linewidth)
@@ -622,7 +675,7 @@ class ViolinStatPlot(BaseStatPlot):
             self.add_mean_marker(ax, x)
             # self.add_errorbar_sd(ax, x)
 
-        self.add_scatter(ax)
+        self.add_swarm(ax)
         self.add_significance_bars(ax, linewidth)
         self.add_titles_and_labels(fig, ax)
         self.axes_formatting(ax, linewidth)
@@ -635,7 +688,7 @@ class BoxStatPlot(BaseStatPlot):
         linewidth = 2
 
         self.add_boxplot(ax)
-        self.add_scatter(ax)
+        self.add_swarm(ax)
         self.add_significance_bars(ax, linewidth)
         self.add_titles_and_labels(fig, ax)
         self.axes_formatting(ax, linewidth)
@@ -658,3 +711,28 @@ class ScatterStatPlot(BaseStatPlot):
         self.add_significance_bars(ax, linewidth)
         self.add_titles_and_labels(fig, ax)
         self.axes_formatting(ax, linewidth)
+
+        xmin, xmax = ax.get_xlim()
+        ax.set_xlim(xmin - 0.25, xmax + 0.25)
+
+
+class SwarmStatPlot(BaseStatPlot):
+
+    def plot(self):
+        fig, ax = self.setup_figure()
+        linewidth = 2
+
+        for x in range(len(self.data_groups)):
+
+            # Overlay errbars, and markers.
+            self.add_median_marker(ax, x)
+            self.add_mean_marker(ax, x)
+            self.add_errorbar_sd(ax, x)
+
+        self.add_swarm(ax)
+        self.add_significance_bars(ax, linewidth)
+        self.add_titles_and_labels(fig, ax)
+        self.axes_formatting(ax, linewidth)
+
+        xmin, xmax = ax.get_xlim()
+        ax.set_xlim(xmin - 0.25, xmax + 0.25)
