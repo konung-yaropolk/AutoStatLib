@@ -136,22 +136,22 @@ If errors occured, *GetResult()* returns an empty dictionary
 -- add QQ plot
 -- n-sample tests: add onetail option
 
-✅ done -- detailed normality test results
-✅ done -- added posthoc: Kruskal-Wallis Dunn's multiple comparisons
+✅ done -- detailed normality test results  
+✅ done -- added posthoc: Kruskal-Wallis Dunn's multiple comparisons  
 
-tests check:
-1-sample:
---Wilcoxon 2,1 tails - ✅ok
---t-tests 2,1 tails -✅ok
+tests check:  
+1-sample:  
+--Wilcoxon 2,1 tails - ✅ok  
+--t-tests 2,1 tails -✅ok  
 
-2-sample:
---Wilcoxon 2,1 tails - ✅ok
---Mann-whitney 2,1 tails - ✅ok
---t-tests 2,1 tails -✅ok
+2-sample:  
+--Wilcoxon 2,1 tails - ✅ok  
+--Mann-whitney 2,1 tails - ✅ok  
+--t-tests 2,1 tails -✅ok  
 
-n-sample:
---Kruskal-Wallis 2 tail - ✅ok
---Dunn's multiple comparisons - ✅ok
---Friedman 2 tail - ✅ok
---one-way ANOWA 2 tail - ✅ok
---Tukey`s multiple comparisons - ✅ok
+n-sample:  
+--Kruskal-Wallis 2 tail - ✅ok  
+--Dunn's multiple comparisons - ✅ok   
+--Friedman 2 tail - ✅ok  
+--one-way ANOWA 2 tail - ✅ok  
+--Tukey`s multiple comparisons - ✅ok  
