@@ -21,6 +21,16 @@ class Helpers():
             {'Row': rows, 'Col': cols, 'Value': data})
         return df
 
+    def list_to_matrix(self, list, n):
+        i = 0
+        matrix = [[1.0 for _ in range(n)] for _ in range(n)]
+        for ax0 in range(n):
+            for ax1 in range(ax0+1, n):
+                matrix[ax0][ax1] = list[i]
+                matrix[ax1][ax0] = list[i]
+                i += 1
+        return matrix
+
     def floatify_recursive(self, data):
         if isinstance(data, list):
             # Recursively process sublists and filter out None values

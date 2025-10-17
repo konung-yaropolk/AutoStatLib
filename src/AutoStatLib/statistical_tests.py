@@ -99,12 +99,12 @@ class StatisticalTests():
                 [[f"Group_{i+1}"] * len(group) for i, group in enumerate(self.data)])
             # Tukey's multiple comparisons
             tukey_result = pairwise_tukeyhsd(data_flat, group_labels)
-            p = tukey_result.pvalues.tolist()
-            self.posthoc_matrix = [
-                [p[2], p[0], p[1]],
-                [p[0], p[2], p[2]],
-                [p[1], p[2], p[2]],
-            ]
+
+            list = tukey_result.pvalues.tolist()
+            n = self.n_groups
+            # prepare posthoc matrix
+            self.posthoc_matrix = self.list_to_matrix(list, n)
+
         return stat, p_value
 
     def anova_1w_rm(self):

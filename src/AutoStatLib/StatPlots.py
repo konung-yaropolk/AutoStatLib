@@ -341,7 +341,7 @@ class BaseStatPlot(Helpers):
                     marker='o',
                     markersize=8,
                     linewidth=1.2,
-                    zorder=1):
+                    zorder=2):
         # Generate x jitter pool.
         spread_pool = []  # storing x positions of data points
         for i, data in enumerate(self.data_groups):
@@ -358,7 +358,7 @@ class BaseStatPlot(Helpers):
                     linewidth=linewidth*self.figure_scale_factor,
                     # Connect the data points if desired.
                     linestyle='-' if self.dependent else '',
-                    zorder=zorder)
+                    zorder=zorder-1)
 
     def add_swarm(self, ax,
                   color='grey',
@@ -366,7 +366,7 @@ class BaseStatPlot(Helpers):
                   marker='o',
                   markersize=8,
                   linewidth=1.4,
-                  zorder=1):
+                  zorder=2):
         """
         Add a swarmplot (scatter-like plot with non-overlapping points)
         to the provided Axes. Automatically reduce point size if overcrowded.
@@ -680,6 +680,9 @@ class ViolinStatPlot(BaseStatPlot):
         self.add_titles_and_labels(fig, ax)
         self.axes_formatting(ax, linewidth)
 
+        xmin, xmax = ax.get_xlim()
+        ax.set_xlim(xmin - 0.3, xmax + 0.3)
+
 
 class BoxStatPlot(BaseStatPlot):
 
@@ -713,7 +716,7 @@ class ScatterStatPlot(BaseStatPlot):
         self.axes_formatting(ax, linewidth)
 
         xmin, xmax = ax.get_xlim()
-        ax.set_xlim(xmin - 0.25, xmax + 0.25)
+        ax.set_xlim(xmin - 0.3, xmax + 0.3)
 
 
 class SwarmStatPlot(BaseStatPlot):
@@ -735,4 +738,4 @@ class SwarmStatPlot(BaseStatPlot):
         self.axes_formatting(ax, linewidth)
 
         xmin, xmax = ax.get_xlim()
-        ax.set_xlim(xmin - 0.25, xmax + 0.25)
+        ax.set_xlim(xmin - 0.3, xmax + 0.3)
