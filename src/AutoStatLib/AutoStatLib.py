@@ -31,6 +31,21 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
         self.warning_flag_non_numeric_data = False
         self.summary = 'AutoStatLib v{}'.format(__version__)
 
+        # empties
+        self.results = None
+        self.error = False
+        self.warnings = []
+        self.normals = []
+        self.test_name = ''
+        self.test_id = None
+        self.test_stat = None
+        self.p_value = None
+        self.posthoc_matrix_df = None
+        self.posthoc_matrix = []
+        self.posthoc_name = ''
+        self.data = []
+        self.parametric = None
+
         # test IDs classification:
         self.test_ids_all = [  # in aplhabetical order
             'anova_1w_ordinary',
@@ -80,6 +95,7 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
             'no_pop_mean_set':                 '\nWarning: No Population Mean was set up for single-sample test, used default 0 value.\n         The results might be skewed. \n         Please, set the Population Mean and run the test again.\n',
         }
 
+
     def run_test(self, test='auto'):
 
         # reset values from previous tests
@@ -116,7 +132,7 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
             assert test in self.test_ids_all or test == 'auto', 'Wrong test id choosen, ensure you called correct function'
             assert all(len(
                 group) >= 4 for group in self.data), 'Each group must contain at least four values'
-            assert not (self.paired == True
+            assert not (self.paired is True
                         and not all(len(lst) == len(self.data[0]) for lst in self.data)), 'Paired groups must have the same length'
             assert not (test in self.test_ids_dependent
                         and not all(len(lst) == len(self.data[0]) for lst in self.data)), 'Groups must have the same length for dependent groups test'
@@ -164,9 +180,9 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
         self.log('Test chosen by user:          ', test)
 
         # Wrong test Warnings
-        if not test == 'auto' and not self.parametric and test in self.test_ids_parametric:
+        if test != 'auto' and not self.parametric and test in self.test_ids_parametric:
             self.AddWarning('param_test_with_non-normal_data')
-        if not test == 'auto' and self.parametric and not test in self.test_ids_parametric:
+        if test != 'auto' and self.parametric and test not in self.test_ids_parametric:
             self.AddWarning('non-param_test_with_normal_data')
 
         # run the test
@@ -184,7 +200,7 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
         self.log('-'*67 + '\n')
 
         # print the results to console:
-        if self.verbose == True:
+        if self.verbose is True:
             print(self.summary)
 
     # public methods:
