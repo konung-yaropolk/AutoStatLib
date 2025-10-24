@@ -408,7 +408,7 @@ class BaseStatPlot(Helpers):
             for i, data in enumerate(self.transpose(self.data_groups)):
                 ax.plot(range(len(data)), data,
                         color=color,
-                        alpha=alpha * 0.7,
+                        alpha=alpha * 0.25,
                         linewidth=linewidth * self.figure_scale_factor,
                         zorder=zorder - 1)
 
