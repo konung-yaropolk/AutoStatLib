@@ -22,7 +22,7 @@ class TextFormatting():
         group_longest = max(len(row) for row in data)
 
         # Print the header
-        header = [f'Group {i+1}' for i in range(num_groups)]
+        header = self.groups_name
         line = [''*7]
         self.log(self.autospace(header, space))
         self.log(self.autospace(line, space))

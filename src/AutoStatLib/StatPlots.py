@@ -82,7 +82,7 @@ class BaseStatPlot(Helpers):
                  x_label='',
                  y_label='',
                  print_x_labels=True,
-                 x_manual_tick_labels=None,
+                 Groups_Name=None,
                  Posthoc_Matrix=[],
                  Posthoc_Tests_Name='',
                  colormap=None,
@@ -125,7 +125,7 @@ class BaseStatPlot(Helpers):
         self.p_printed = self.make_p_value_printed(self.p)
         self.stars_printed = self.make_stars_printed(self.make_stars(self.p))
 
-        self.x_manual_tick_labels = x_manual_tick_labels if x_manual_tick_labels is not None else [
+        self.groups_name = Groups_Name if Groups_Name is not None else [
             '']
 
         if colormap is not None and colormap != ['']:
@@ -361,7 +361,7 @@ class BaseStatPlot(Helpers):
                     zorder=zorder-1)
 
     def add_swarm(self, ax,
-                  color='grey',
+                  color='dimgrey',
                   alpha=1,
                   marker='o',
                   markersize=8,
@@ -569,10 +569,10 @@ class BaseStatPlot(Helpers):
         # Set x ticks and labels
         if self.print_x_labels:
             plt.subplots_adjust(bottom=0.11)
-            if self.x_manual_tick_labels != ['']:
+            if self.groups_name != ['']:
                 ax.set_xticks(range(self.n_groups))
-                ax.set_xticklabels([self.x_manual_tick_labels[i % len(self.x_manual_tick_labels)]
-                                    for i in range(self.n_groups)])
+                ax.set_xticklabels([self.groups_name[i % len(self.groups_name)]
+                                    for i in range(self.n_groups)], fontweight='regular', fontsize=8*self.figure_scale_factor)
             else:
                 ax.set_xticks(range(self.n_groups))
                 ax.set_xticklabels(['Group {}'.format(i + 1)

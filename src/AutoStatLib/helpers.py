@@ -65,6 +65,7 @@ class Helpers():
             'Stars':  self.stars_int,
             # 'Stat_Value': self.test_stat.item(),
             'Warnings': self.warnings,
+            'Groups_Name': self.groups_name,
             'Groups_N': [len(self.data[i]) for i in range(len(self.data))],
             'Groups_Median': [np.median(self.data[i]).item() for i in range(len(self.data))],
             'Groups_Mean': [np.mean(self.data[i]).item() for i in range(len(self.data))],
