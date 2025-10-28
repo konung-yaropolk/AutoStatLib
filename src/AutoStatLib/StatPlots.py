@@ -429,7 +429,7 @@ class BaseStatPlot(Helpers):
                     zorder=zorder)
 
     def add_errorbar_sem(self, ax, x,
-                         capsize=4,
+                         capsize=5,
                          ecolor='r',
                          linewidth=2,
                          zorder=3):
