@@ -92,7 +92,7 @@ class TextFormatting():
         if p is not None:
             if p < 0.0001:
                 return 4
-            if p < 0.001:
+            elif p < 0.001:
                 return 3
             elif p < 0.01:
                 return 2
