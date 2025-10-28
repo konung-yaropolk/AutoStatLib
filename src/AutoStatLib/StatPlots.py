@@ -168,9 +168,9 @@ class BaseStatPlot(Helpers):
                        linewidth=2,
                        widths=0.85,
                        vert=True,
-                       showmeans=True,
-                       showmedians=True,
-                       showextrema=True,
+                       showmeans=False,
+                       showmedians=False,
+                       showextrema=False,
                        points=200,
                        bw_method=0.5):
 
@@ -413,7 +413,7 @@ class BaseStatPlot(Helpers):
                         zorder=zorder - 1)
 
     def add_errorbar_sd(self, ax, x,
-                        capsize=8,
+                        capsize=4,
                         ecolor='r',
                         linewidth=2,
                         zorder=3):
@@ -424,10 +424,12 @@ class BaseStatPlot(Helpers):
                     capsize=capsize*self.figure_scale_factor,
                     ecolor=ecolor,
                     linewidth=linewidth*self.figure_scale_factor,
+                    elinewidth=linewidth*self.figure_scale_factor,
+                    capthick=linewidth*self.figure_scale_factor,
                     zorder=zorder)
 
     def add_errorbar_sem(self, ax, x,
-                         capsize=8,
+                         capsize=4,
                          ecolor='r',
                          linewidth=2,
                          zorder=3):
@@ -439,35 +441,40 @@ class BaseStatPlot(Helpers):
                     ecolor=ecolor,
                     linewidth=linewidth*self.figure_scale_factor,
                     elinewidth=linewidth*self.figure_scale_factor,
+                    capthick=linewidth*self.figure_scale_factor,
                     zorder=zorder)
 
     def add_mean_marker(self, ax, x,
                         marker='_',
                         markerfacecolor='#00000000',
                         markeredgecolor='r',
-                        markersize=16,
-                        markeredgewidth=1):
+                        markersize=20,
+                        linewidth=2,
+                        zorder=3):
         # Overlay mean marker
         ax.plot(x, self.mean[x],
                 marker=marker,
                 markerfacecolor=markerfacecolor,
                 markeredgecolor=markeredgecolor,
                 markersize=markersize*self.figure_scale_factor,
-                markeredgewidth=markeredgewidth*self.figure_scale_factor)
+                markeredgewidth=linewidth*self.figure_scale_factor,
+                zorder=zorder)
 
     def add_median_marker(self, ax, x,
-                          marker='x',
-                          markerfacecolor='#00000000',
+                          marker='o',
+                          markerfacecolor="#FFFFFFFF",
                           markeredgecolor='r',
-                          markersize=10,
-                          markeredgewidth=1):
+                          markersize=6,
+                          linewidth=2,
+                          zorder=4):
         # Overlay median marker
         ax.plot(x, self.median[x],
                 marker=marker,
                 markerfacecolor=markerfacecolor,
                 markeredgecolor=markeredgecolor,
                 markersize=markersize*self.figure_scale_factor,
-                markeredgewidth=markeredgewidth*self.figure_scale_factor)
+                markeredgewidth=linewidth*self.figure_scale_factor,
+                zorder=zorder)
 
     def add_significance_bars(self, ax,
                               linewidth=2,
@@ -628,19 +635,18 @@ class BaseStatPlot(Helpers):
 
 class BarStatPlot(BaseStatPlot):
 
-    def plot(self):
+    def plot(self, linewidth=1.8):
         fig, ax = self.setup_figure()
-        linewidth = 2
-
+        
         for x in range(len(self.data_groups)):
 
             # Create a bar for given group.
-            self.add_barplot(ax, x)
+            self.add_barplot(ax, x, linewidth=linewidth)
 
             # Overlay errbars, and markers.
-            self.add_median_marker(ax, x)
-            self.add_mean_marker(ax, x)
-            self.add_errorbar_sd(ax, x)
+            self.add_median_marker(ax, x, linewidth=linewidth)
+            self.add_mean_marker(ax, x, linewidth=linewidth)
+            self.add_errorbar_sd(ax, x, linewidth=linewidth)
 
         self.add_swarm(ax)
         self.add_significance_bars(ax, linewidth)
@@ -661,9 +667,8 @@ class ViolinStatPlot(BaseStatPlot):
         https://seaborn.pydata.org/archive/0.11/generated/seaborn.violinplot.html
     '''
 
-    def plot(self):
+    def plot(self, linewidth=1.8):
         fig, ax = self.setup_figure()
-        linewidth = 2
 
         for x in range(len(self.data_groups)):
 
@@ -671,9 +676,9 @@ class ViolinStatPlot(BaseStatPlot):
             self.add_violinplot(ax, x)
 
             # Overlay errbars and markers.
-            self.add_median_marker(ax, x)
-            self.add_mean_marker(ax, x)
-            # self.add_errorbar_sd(ax, x)
+            self.add_median_marker(ax, x, linewidth=linewidth)
+            self.add_mean_marker(ax, x, linewidth=linewidth)
+            self.add_errorbar_sd(ax, x, linewidth=linewidth)
 
         self.add_swarm(ax)
         self.add_significance_bars(ax, linewidth)
@@ -686,9 +691,8 @@ class ViolinStatPlot(BaseStatPlot):
 
 class BoxStatPlot(BaseStatPlot):
 
-    def plot(self):
+    def plot(self, linewidth=1.8):
         fig, ax = self.setup_figure()
-        linewidth = 2
 
         self.add_boxplot(ax)
         self.add_swarm(ax)
@@ -699,16 +703,15 @@ class BoxStatPlot(BaseStatPlot):
 
 class ScatterStatPlot(BaseStatPlot):
 
-    def plot(self):
+    def plot(self, linewidth=1.8):
         fig, ax = self.setup_figure()
-        linewidth = 2
 
         for x in range(len(self.data_groups)):
 
             # Overlay errbars, and markers.
-            self.add_median_marker(ax, x)
-            self.add_mean_marker(ax, x)
-            self.add_errorbar_sd(ax, x)
+            self.add_median_marker(ax, x, linewidth=linewidth)
+            self.add_mean_marker(ax, x, linewidth=linewidth)
+            self.add_errorbar_sd(ax, x, linewidth=linewidth)
 
         self.add_scatter(ax)
         self.add_significance_bars(ax, linewidth)
@@ -721,16 +724,15 @@ class ScatterStatPlot(BaseStatPlot):
 
 class SwarmStatPlot(BaseStatPlot):
 
-    def plot(self):
+    def plot(self, linewidth=1.8):
         fig, ax = self.setup_figure()
-        linewidth = 2
 
         for x in range(len(self.data_groups)):
 
             # Overlay errbars, and markers.
-            self.add_median_marker(ax, x)
-            self.add_mean_marker(ax, x)
-            self.add_errorbar_sd(ax, x)
+            self.add_median_marker(ax, x, linewidth=linewidth)
+            self.add_mean_marker(ax, x, linewidth=linewidth)
+            self.add_errorbar_sd(ax, x, linewidth=linewidth)
 
         self.add_swarm(ax)
         self.add_significance_bars(ax, linewidth)
