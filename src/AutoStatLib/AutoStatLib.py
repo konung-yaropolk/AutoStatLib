@@ -164,7 +164,7 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
         self.log('Shapiro-Wilk, Lilliefors, Anderson-Darling, D\'Agostino-Pearson')
         self.log(
             '[+] -positive, [-] -negative, [ ] -too small group for the test\n')
-        self.log('    Test       :   SW  LF  AD  AP  ')
+        self.log('                   SW  LF  AD  AP  ')
         for i, data in enumerate(self.data):
             poll = self.check_normality(data)
             isnormal = any(poll)
