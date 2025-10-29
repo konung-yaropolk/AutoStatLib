@@ -30,7 +30,7 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
         self.verbose = verbose
         self.n_groups = len(self.groups_list)
         self.groups_name = [groups_name[i % len(groups_name)]
-                             for i in range(self.n_groups)] if groups_name and groups_name != [''] else [f'Group {i+1}' for i in range(self.n_groups)]
+                            for i in range(self.n_groups)] if groups_name and groups_name != [''] else [f'Group {i+1}' for i in range(self.n_groups)]
 
         self.warning_flag_non_numeric_data = False
         self.summary = 'AutoStatLib v{}'.format(__version__)
@@ -99,7 +99,6 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
             'no_pop_mean_set':                 '\nWarning: No Population Mean was set up for single-sample test, used default 0 value.\n         The results might be skewed. \n         Please, set the Population Mean and run the test again.\n',
         }
 
-
     def run_test(self, test='auto'):
 
         # reset values from previous tests
@@ -128,7 +127,7 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
         # delete the empty cols from input
         self.data = [col for col in self.data if any(
             x is not None for x in col)]
-        
+
         # User input assertion block
         try:
             assert self.data, 'There is no input data'
@@ -165,7 +164,7 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
         self.log('Shapiro-Wilk, Lilliefors, Anderson-Darling, D\'Agostino-Pearson')
         self.log(
             '[+] -positive, [-] -negative, [ ] -too small group for the test\n')
-        self.log('        Test   :   SW  LF  AD  AP  ')
+        self.log('    Test       :   SW  LF  AD  AP  ')
         for i, data in enumerate(self.data):
             poll = self.check_normality(data)
             isnormal = any(poll)
@@ -173,7 +172,7 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
                 '+' if x is True else '-' if x is False else ' ' if x is None else 'e' for x in poll)
             self.normals.append(isnormal)
             self.log(
-                f'        {self.groups_name[i].ljust(7, ' ')[:7]}:    {poll_print[0]}   {poll_print[1]}   {poll_print[2]}   {poll_print[3]}   so disrtibution seems {"normal" if isnormal else "not normal"}')
+                f'    {self.groups_name[i].ljust(11, ' ')[:11]}:    {poll_print[0]}   {poll_print[1]}   {poll_print[2]}   {poll_print[3]}   so disrtibution seems {"normal" if isnormal else "not normal"}')
         self.parametric = all(self.normals)
 
         # print test choosen
