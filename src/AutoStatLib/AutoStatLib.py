@@ -110,6 +110,7 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
         self.test_id = None
         self.test_stat = None
         self.p_value = None
+        self.parametric = None
         self.posthoc_matrix_df = None
         self.posthoc_matrix = []
         self.posthoc_name = ''
@@ -136,9 +137,9 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
             assert all(len(
                 group) >= 4 for group in self.data), 'Each group must contain at least four values'
             assert not (self.paired is True
-                        and not all(len(lst) == len(self.data[0]) for lst in self.data)), 'Paired groups must have the same length'
+                        and not all(len(lst) == len(self.data[0]) for lst in self.data)), 'Paired samples must have the same length'
             assert not (test in self.test_ids_dependent
-                        and not all(len(lst) == len(self.data[0]) for lst in self.data)), 'Groups must have the same length for dependent groups test'
+                        and not all(len(lst) == len(self.data[0]) for lst in self.data)), 'Samples must have the same length for the dependend statistics test'
             assert not (test in self.test_ids_2sample
                         and self.n_groups != 2), f'Only two groups of data must be given for 2-groups tests, got {self.n_groups}'
             assert not (test in self.test_ids_1sample
@@ -146,11 +147,19 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
             assert not (test in self.test_ids_3sample
                         and self.n_groups < 3), f'At least three groups of data must be given for multi-groups tests, got {self.n_groups}'
         except AssertionError as error:
-            self.log('\nTest  :', test)
-            self.log('Error :', error)
-            self.log('-'*67 + '\n')
-            self.error = True
-            print(self.summary)
+            self.run_test_by_id('none')
+            self.results = self.create_results_dict()
+
+            # Print errmessage:
+            if self.verbose:
+                self.log('\nTest  :', test)
+                self.log('Error :', error)
+                self.log('-'*67 + '\n')
+                self.error = True
+                print(self.summary)
+            else:
+                print('AutoStatLib Error :', error)
+
             return
 
         # Print the data

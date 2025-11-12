@@ -60,6 +60,7 @@ class StatisticalTests():
             't_test_single_sample': 'Single-sample t-test',
             'wilcoxon': 'Wilcoxon signed-rank test',
             'wilcoxon_single_sample': 'Wilcoxon signed-rank test for single sample',
+            'none': 'No statictical tests preformed'
         }
 
         match test_id:
@@ -73,6 +74,7 @@ class StatisticalTests():
             case 't_test_single_sample': stat, p_value = self.t_test_single_sample()
             case 'wilcoxon': stat, p_value = self.wilcoxon()
             case 'wilcoxon_single_sample': stat, p_value = self.wilcoxon_single_sample()
+            case 'none': stat, p_value = (None, None)
 
         if test_id in self.test_ids_dependent:
             self.paired = True

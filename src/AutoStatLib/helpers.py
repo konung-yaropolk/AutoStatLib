@@ -47,21 +47,23 @@ class Helpers():
 
     def create_results_dict(self) -> dict:
 
-        self.stars_int = self.make_stars(self.p_value.item())
-        self.stars_str = self.make_stars_printed(self.stars_int)
+        self.stars_int = self.make_stars(
+            self.p_value.item()) if self.p_value else None
+        self.stars_str = self.make_stars_printed(
+            self.stars_int) if self.p_value else ''
 
         return {
-            'p_value': self.make_p_value_printed(self.p_value.item()),
-            'Significance(p<0.05)':  True if self.p_value.item() < 0.05 else False,
+            'p_value': self.make_p_value_printed(self.p_value.item()) if self.p_value else None,
+            'Significance(p<0.05)':  True if self.p_value and self.p_value.item() < 0.05 else False,
             'Stars_Printed': self.stars_str,
             'Test_Name': self.test_name,
             'Groups_Compared': self.n_groups,
             'Population_Mean': self.popmean if self.n_groups == 1 else 'N/A',
-            'Data_Normaly_Distributed': self.parametric,
+            'Data_Normaly_Distributed': self.parametric if self.p_value else None,
             'Parametric_Test_Applied': True if self.test_id in self.test_ids_parametric else False,
-            'Paired_Test_Applied': self.paired,
+            'Paired_Test_Applied': self.paired if self.p_value else None,
             'Tails': self.tails,
-            'p_value_exact': self.p_value.item(),
+            'p_value_exact': self.p_value.item() if self.p_value else None,
             'Stars':  self.stars_int,
             # 'Stat_Value': self.test_stat.item(),
             'Warnings': self.warnings,

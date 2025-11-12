@@ -6,7 +6,7 @@ import AutoStatLib
 
 # %%# set sample data size:
 groups = 5
-n = 20
+n = 30
 
 # %%# set the parameters:
 paired = False     # is groups dependent or not
