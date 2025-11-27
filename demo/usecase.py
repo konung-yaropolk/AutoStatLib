@@ -6,7 +6,7 @@ import AutoStatLib
 
 # %%# set sample data size:
 groups = 5
-n = 30
+n = 20
 
 # %%# set the parameters:
 paired = False     # is groups dependent or not
@@ -24,7 +24,7 @@ data = [list(np.random.normal(.5*i + 4, abs(1-.2*i), n))
 
 # %%# initiate the analysis
 analysis = AutoStatLib.StatisticalAnalysis(
-    data, paired=paired, tails=tails, popmean=popmean, posthoc=True)
+    data, paired=paired, tails=tails, popmean=popmean, posthoc=True, subgrouping=[5, 6, 1, 3, 6])
 
 # %%# Preform auto-selected test
 analysis.RunAuto()
@@ -55,7 +55,8 @@ analysis.RunAuto()
 
 # %%# Get the results dictionary for future processing
 results = analysis.GetResult()
-plot = AutoStatLib.StatPlots.BarStatPlot(results['Samples'], **results)
+plot = AutoStatLib.StatPlots.SwarmStatPlot_subgrouping_betta(
+    results['Samples'], **results)
 
 plot.plot()
 plot.show()

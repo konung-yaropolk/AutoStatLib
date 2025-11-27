@@ -1,7 +1,9 @@
+from re import X
 import seaborn as sns
 import random
 # from math import comb
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import matplotlib.colors as color
@@ -70,6 +72,20 @@ class Helpers():
     def transpose(self, data):
         return list(map(list, zip(*data)))
 
+    def expand_counts(self, counts):
+        '''
+            The input is a list of integers. 
+            Output is list of matrices.
+            Each int represents each output matrix and defines
+            how many columns to include in the matrix.
+            Eg: input:  [3,2,1]
+                outpot: [0,0,0,1,1,2]
+        '''
+        output = []
+        for n, c in enumerate(counts, start=1):
+            output.extend([n] * c)
+        return output
+
 
 class BaseStatPlot(Helpers):
 
@@ -83,6 +99,7 @@ class BaseStatPlot(Helpers):
                  y_label='',
                  print_x_labels=True,
                  Groups_Name=None,
+                 subgrouping=[],
                  Posthoc_Matrix=[],
                  Posthoc_Tests_Name='',
                  colormap=None,
@@ -92,7 +109,7 @@ class BaseStatPlot(Helpers):
                  figure_h=4,
                  figure_w=0,  # 0 means auto
                  **kwargs):
-        self.data_groups = [group if group else [0, 0, 0, 0]
+        self.data_groups = [group if group else None
                             for group in data_groups]
         self.n_groups = len(self.data_groups)
         self.p = p_value_exact
@@ -110,6 +127,14 @@ class BaseStatPlot(Helpers):
         self.figure_scale_factor = figure_scale_factor
         self.figure_h = figure_h
         self.figure_w = figure_w
+        self.error = False
+
+        try:
+            assert any(self.data_groups), 'There is no input data'
+        except AssertionError as error:
+            self.error = True
+            print('AutoStatLib.StatPlots Error :', error)
+            return
 
         #  sd sem mean and median calculation if they are not provided
         self.mean = [
@@ -127,6 +152,9 @@ class BaseStatPlot(Helpers):
 
         self.groups_name = Groups_Name if Groups_Name is not None else [
             '']
+
+        self.subgrouping = subgrouping if subgrouping else [0]
+        self.subgrouping_arrange = self.expand_counts(self.subgrouping)
 
         if colormap is not None and colormap != ['']:
             colormap = colormap
@@ -362,6 +390,7 @@ class BaseStatPlot(Helpers):
 
     def add_swarm(self, ax,
                   color='dimgrey',
+                  default_color='dimgrey',
                   alpha=1,
                   marker='o',
                   markersize=8,
@@ -370,6 +399,9 @@ class BaseStatPlot(Helpers):
         """
         Add a swarmplot (scatter-like plot with non-overlapping points)
         to the provided Axes. Automatically reduce point size if overcrowded.
+        Automatically assigns colors using sns.color_palette("tab10")
+        to all unique non-missing group labels.
+        Missing labels → default_color.
         """
 
         # Prepare flattened data
@@ -411,6 +443,96 @@ class BaseStatPlot(Helpers):
                         alpha=alpha * 0.25,
                         linewidth=linewidth * self.figure_scale_factor,
                         zorder=zorder - 1)
+
+    def add_swarm_with_alternate_colors(self, ax,
+                                        color='dimgrey',
+                                        default_color='dimgrey',
+                                        palette_name="tab10",
+                                        subgrouping=[0],
+                                        alpha=1,
+                                        marker='o',
+                                        markersize=8,
+                                        linewidth=1.4,
+                                        zorder=2):
+        """
+        Add a swarmplot (scatter-like plot with non-overlapping points)
+        to the provided Axes. Automatically reduce point size if overcrowded.
+        Automatically assigns colors using sns.color_palette("tab10")
+        to all unique non-missing group labels.
+        Missing labels → default_color.
+        """
+
+        # Prepare flattened data
+        values = [v for i, group in enumerate(self.data_groups) for v in group]
+        groups = [i for i, group in enumerate(self.data_groups) for _ in group]
+
+        values = np.array(values)
+        print(values)
+        # Estimate overcrowding for adaptive sizing
+        group_counts = [len(g) for g in self.data_groups]
+        max_points = max(group_counts) if group_counts else 1
+
+        # Determine horizontal space per category
+        num_groups = len(self.data_groups)
+        xlim = ax.get_xlim()
+        width_per_group = (xlim[1] - xlim[0]) / max(num_groups, 1)
+
+        # Empirical density threshold: if points are too dense, shrink
+        density = max_points / (width_per_group + 1e-6)
+
+        # Tunable constants to approximate best function of size adjustment
+        size_scale = max(0.1, min(1, 3.5 / (density ** 0.5)))
+
+        # Normalize labels (missing -> __default__)
+        normalized_labels = [
+            lbl if (lbl not in (None, "", np.nan)) else "__default__"
+            for lbl in subgrouping
+        ]
+
+        # Construct row-by-row long-form DataFrame for seaborn
+        df_list = []
+        for col in range(num_groups):
+            df_list.append(pd.DataFrame({
+                "value": values,
+                "x": groups,
+                "group": normalized_labels[col]
+            }))
+        df = pd.concat(df_list, ignore_index=True)
+
+        # Extract unique non-default labels
+        unique_groups = [g for g in df["group"].unique() if g != "__default__"]
+
+        # Auto palette for them
+        colors = sns.color_palette(palette_name, len(unique_groups))
+        auto_palette = {g: c for g, c in zip(unique_groups, colors)}
+
+        # Add default color
+        auto_palette["__default__"] = default_color
+
+        sns.swarmplot(
+            data=df,
+            y="value",
+            x='x',
+            hue="group",
+            ax=ax,
+            # color=color,
+            palette=auto_palette,
+            dodge=False,
+            alpha=alpha,
+            size=markersize * self.figure_scale_factor * size_scale,
+            marker=marker,
+            linewidth=linewidth * self.figure_scale_factor * size_scale,
+            zorder=zorder,
+        )
+
+        # # Connect points if data paired
+        # if self.dependent == True:
+        #     for i, data in enumerate(self.transpose(self.data_groups)):
+        #         ax.plot(range(len(data)), data,
+        #                 color=color,
+        #                 alpha=alpha * 0.25,
+        #                 linewidth=linewidth * self.figure_scale_factor,
+        #                 zorder=zorder - 1)
 
     def add_errorbar_sd(self, ax, x,
                         capsize=4,
@@ -616,42 +738,48 @@ class BaseStatPlot(Helpers):
                  ha='right', va='bottom', fontsize=8*self.figure_scale_factor, fontweight='regular')
 
     def show(self):
-        plt.show()
+        if not self.error:
+            plt.show()
 
     def save(self, path):
-        plt.savefig(path,
-                    pad_inches=0.1*self.figure_scale_factor,
-                    transparent=True,
-                    )
+        if not self.error:
+            plt.savefig(path,
+                        pad_inches=0.1*self.figure_scale_factor,
+                        transparent=True,
+                        )
 
     def close(self):
-        plt.close()
+        if not self.error:
+            plt.close()
 
     def plot(self):
-        # Abstract method—each subclass must implement its own plot method
-        raise NotImplementedError(
-            "Implement the plot() method in the subclass")
+        if not self.error:
+            # Abstract method—each subclass must implement its own plot method
+            raise NotImplementedError(
+                "Implement the plot() method in the subclass")
 
 
 class BarStatPlot(BaseStatPlot):
 
     def plot(self, linewidth=1.8):
-        fig, ax = self.setup_figure()
-        
-        for x in range(len(self.data_groups)):
+        if not self.error:
 
-            # Create a bar for given group.
-            self.add_barplot(ax, x, linewidth=linewidth)
+            fig, ax = self.setup_figure()
 
-            # Overlay errbars, and markers.
-            self.add_median_marker(ax, x, linewidth=linewidth)
-            self.add_mean_marker(ax, x, linewidth=linewidth)
-            self.add_errorbar_sd(ax, x, linewidth=linewidth)
+            for x in range(len(self.data_groups)):
 
-        self.add_swarm(ax)
-        self.add_significance_bars(ax, linewidth)
-        self.add_titles_and_labels(fig, ax)
-        self.axes_formatting(ax, linewidth)
+                # Create a bar for given group.
+                self.add_barplot(ax, x, linewidth=linewidth)
+
+                # Overlay errbars, and markers.
+                self.add_median_marker(ax, x, linewidth=linewidth)
+                self.add_mean_marker(ax, x, linewidth=linewidth)
+                self.add_errorbar_sd(ax, x, linewidth=linewidth)
+
+            self.add_swarm(ax)
+            self.add_significance_bars(ax, linewidth)
+            self.add_titles_and_labels(fig, ax)
+            self.axes_formatting(ax, linewidth)
 
 
 class ViolinStatPlot(BaseStatPlot):
@@ -668,76 +796,103 @@ class ViolinStatPlot(BaseStatPlot):
     '''
 
     def plot(self, linewidth=1.8):
-        fig, ax = self.setup_figure()
+        if not self.error:
+            fig, ax = self.setup_figure()
 
-        for x in range(len(self.data_groups)):
+            for x in range(len(self.data_groups)):
 
-            # Create a violin for given group.
-            self.add_violinplot(ax, x)
+                # Create a violin for given group.
+                self.add_violinplot(ax, x)
 
-            # Overlay errbars and markers.
-            self.add_median_marker(ax, x, linewidth=linewidth)
-            self.add_mean_marker(ax, x, linewidth=linewidth)
-            self.add_errorbar_sd(ax, x, linewidth=linewidth)
+                # Overlay errbars and markers.
+                self.add_median_marker(ax, x, linewidth=linewidth)
+                self.add_mean_marker(ax, x, linewidth=linewidth)
+                self.add_errorbar_sd(ax, x, linewidth=linewidth)
 
-        self.add_swarm(ax)
-        self.add_significance_bars(ax, linewidth)
-        self.add_titles_and_labels(fig, ax)
-        self.axes_formatting(ax, linewidth)
+            self.add_swarm(ax)
+            self.add_significance_bars(ax, linewidth)
+            self.add_titles_and_labels(fig, ax)
+            self.axes_formatting(ax, linewidth)
 
-        xmin, xmax = ax.get_xlim()
-        ax.set_xlim(xmin - 0.3, xmax + 0.3)
+            xmin, xmax = ax.get_xlim()
+            ax.set_xlim(xmin - 0.3, xmax + 0.3)
 
 
 class BoxStatPlot(BaseStatPlot):
 
     def plot(self, linewidth=1.8):
-        fig, ax = self.setup_figure()
+        if not self.error:
+            fig, ax = self.setup_figure()
 
-        self.add_boxplot(ax)
-        self.add_swarm(ax)
-        self.add_significance_bars(ax, linewidth)
-        self.add_titles_and_labels(fig, ax)
-        self.axes_formatting(ax, linewidth)
+            self.add_boxplot(ax)
+            self.add_swarm(ax)
+            self.add_significance_bars(ax, linewidth)
+            self.add_titles_and_labels(fig, ax)
+            self.axes_formatting(ax, linewidth)
 
 
 class ScatterStatPlot(BaseStatPlot):
 
     def plot(self, linewidth=1.8):
-        fig, ax = self.setup_figure()
+        if not self.error:
+            fig, ax = self.setup_figure()
 
-        for x in range(len(self.data_groups)):
+            for x in range(len(self.data_groups)):
 
-            # Overlay errbars, and markers.
-            self.add_median_marker(ax, x, linewidth=linewidth)
-            self.add_mean_marker(ax, x, linewidth=linewidth)
-            self.add_errorbar_sd(ax, x, linewidth=linewidth)
+                # Overlay errbars, and markers.
+                self.add_median_marker(ax, x, linewidth=linewidth)
+                self.add_mean_marker(ax, x, linewidth=linewidth)
+                self.add_errorbar_sd(ax, x, linewidth=linewidth)
 
-        self.add_scatter(ax)
-        self.add_significance_bars(ax, linewidth)
-        self.add_titles_and_labels(fig, ax)
-        self.axes_formatting(ax, linewidth)
+            self.add_scatter(ax)
+            self.add_significance_bars(ax, linewidth)
+            self.add_titles_and_labels(fig, ax)
+            self.axes_formatting(ax, linewidth)
 
-        xmin, xmax = ax.get_xlim()
-        ax.set_xlim(xmin - 0.3, xmax + 0.3)
+            xmin, xmax = ax.get_xlim()
+            ax.set_xlim(xmin - 0.3, xmax + 0.3)
 
 
 class SwarmStatPlot(BaseStatPlot):
 
     def plot(self, linewidth=1.8):
-        fig, ax = self.setup_figure()
+        if not self.error:
+            fig, ax = self.setup_figure()
 
-        for x in range(len(self.data_groups)):
+            for x in range(len(self.data_groups)):
 
-            # Overlay errbars, and markers.
-            self.add_median_marker(ax, x, linewidth=linewidth)
-            self.add_mean_marker(ax, x, linewidth=linewidth)
-            self.add_errorbar_sd(ax, x, linewidth=linewidth)
+                # Overlay errbars, and markers.
+                self.add_median_marker(ax, x, linewidth=linewidth)
+                self.add_mean_marker(ax, x, linewidth=linewidth)
+                self.add_errorbar_sd(ax, x, linewidth=linewidth)
 
-        self.add_swarm(ax)
-        self.add_significance_bars(ax, linewidth)
-        self.add_titles_and_labels(fig, ax)
-        self.axes_formatting(ax, linewidth)
+            self.add_swarm(ax)
+            self.add_significance_bars(ax, linewidth)
+            self.add_titles_and_labels(fig, ax)
+            self.axes_formatting(ax, linewidth)
 
-        xmin, xmax = ax.get_xlim()
-        ax.set_xlim(xmin - 0.3, xmax + 0.3)
+            xmin, xmax = ax.get_xlim()
+            ax.set_xlim(xmin - 0.3, xmax + 0.3)
+
+
+class SwarmStatPlot_subgrouping_betta(BaseStatPlot):
+
+    def plot(self, linewidth=1.8):
+        if not self.error:
+            fig, ax = self.setup_figure()
+
+            for x in range(len(self.data_groups)):
+
+                # Overlay errbars, and markers.
+                self.add_median_marker(ax, x, linewidth=linewidth)
+                self.add_mean_marker(ax, x, linewidth=linewidth)
+                self.add_errorbar_sd(ax, x, linewidth=linewidth)
+
+            self.add_swarm_with_alternate_colors(
+                ax, subgrouping=self.subgrouping_arrange)
+            self.add_significance_bars(ax, linewidth)
+            self.add_titles_and_labels(fig, ax)
+            self.axes_formatting(ax, linewidth)
+
+            xmin, xmax = ax.get_xlim()
+            ax.set_xlim(xmin - 0.3, xmax + 0.3)

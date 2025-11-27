@@ -19,7 +19,8 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
                  popmean=None,
                  posthoc=False,
                  verbose=True,
-                 groups_name=[]):
+                 groups_name=[],
+                 subgrouping=[]):
         self.results = None
         self.error = False
         self.groups_list = groups_list
@@ -31,7 +32,7 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
         self.n_groups = len(self.groups_list)
         self.groups_name = [groups_name[i % len(groups_name)]
                             for i in range(self.n_groups)] if groups_name and groups_name != [''] else [f'Group {i+1}' for i in range(self.n_groups)]
-
+        self.subgrouping = subgrouping if subgrouping else [0]
         self.warning_flag_non_numeric_data = False
         self.summary = 'AutoStatLib v{}'.format(__version__)
 

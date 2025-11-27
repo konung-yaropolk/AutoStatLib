@@ -73,6 +73,7 @@ class Helpers():
             'Groups_Mean': [np.mean(self.data[i]).item() for i in range(len(self.data))],
             'Groups_SD': [np.std(self.data[i]).item() for i in range(len(self.data))],
             'Groups_SE': [np.std(self.data[i]).item() / np.sqrt(len(self.data)).item() for i in range(len(self.data))],
+            'subgrouping': self.subgrouping,
             # actually returns list of lists of numpy dtypes of float64, next make it return regular floats:
             'Samples': self.data,
             'Posthoc_Tests_Name': self.posthoc_name if self.posthoc_name is not None else '',
