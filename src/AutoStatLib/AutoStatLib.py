@@ -19,6 +19,7 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
                  popmean=None,
                  posthoc=False,
                  verbose=True,
+                 raise_errors=False,
                  groups_name=[],
                  subgrouping=[]):
         self.results = None
@@ -29,6 +30,7 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
         self.popmean = popmean
         self.posthoc = posthoc
         self.verbose = verbose
+        self.raise_errors = raise_errors
         self.n_groups = len(self.groups_list)
         self.groups_name = [groups_name[i % len(groups_name)]
                             for i in range(self.n_groups)] if groups_name and groups_name != [''] else [f'Group {i+1}' for i in range(self.n_groups)]
@@ -150,6 +152,9 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
         except AssertionError as error:
             self.run_test_by_id('none')
             self.results = self.create_results_dict()
+
+            if self.raise_errors:
+                raise ValueError(error)
 
             # Print errmessage:
             if self.verbose:

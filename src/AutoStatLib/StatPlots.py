@@ -79,11 +79,14 @@ class Helpers():
             Each int represents each output matrix and defines
             how many columns to include in the matrix.
             Eg: input:  [3,2,1]
-                outpot: [0,0,0,1,1,2]
+                output: [0,0,0,1,1,2]
         '''
         output = []
-        for n, c in enumerate(counts, start=1):
+        counts = list(filter(None, counts))
+        for n, c in enumerate(counts, start=0):
             output.extend([n] * c)
+        if output == []:
+            output = [0]
         return output
 
 
@@ -465,9 +468,8 @@ class BaseStatPlot(Helpers):
         # Prepare flattened data
         values = [v for i, group in enumerate(self.data_groups) for v in group]
         groups = [i for i, group in enumerate(self.data_groups) for _ in group]
-
         values = np.array(values)
-        print(values)
+
         # Estimate overcrowding for adaptive sizing
         group_counts = [len(g) for g in self.data_groups]
         max_points = max(group_counts) if group_counts else 1
@@ -484,40 +486,61 @@ class BaseStatPlot(Helpers):
         size_scale = max(0.1, min(1, 3.5 / (density ** 0.5)))
 
         # Normalize labels (missing -> __default__)
-        normalized_labels = [
-            lbl if (lbl not in (None, "", np.nan)) else "__default__"
-            for lbl in subgrouping
-        ]
+        if set(subgrouping) != {0}:
+            normalized_labels = [
+                lbl if (lbl not in (None, "", np.nan, 0)) else "_"
+                for lbl in subgrouping]
+
+            len_data = int(len(values)/2)
+            len_lbl = len(normalized_labels)
+
+            if len_lbl < len_data:
+                # Extend normalized_labels to match data points count
+                normalized_labels.extend(['last'] * (len_data - len_lbl))
+            elif len_lbl > len_data:
+                # Shrink normalized_labels to match data points count
+                normalized_labels = normalized_labels[0:len_data]
+
+        else:
+            normalized_labels = ["_" for _ in self.data_groups[0]]
 
         # Construct row-by-row long-form DataFrame for seaborn
-        df_list = []
-        for col in range(num_groups):
-            df_list.append(pd.DataFrame({
-                "value": values,
-                "x": groups,
-                "group": normalized_labels[col]
-            }))
-        df = pd.concat(df_list, ignore_index=True)
+        # df_list = []
+        # for col in range(num_groups):
+        #     df_list.append(pd.DataFrame({
+        #         "value": values,
+        #         "x": groups,
+        #         "subgroup": normalized_labels[col],
+        #     }))
+        # df = pd.concat(df_list, ignore_index=True)
 
         # Extract unique non-default labels
-        unique_groups = [g for g in df["group"].unique() if g != "__default__"]
+        # unique_subgroups = [g for g in df["subgroup"].unique() if g != "__default__"]
+        unique_subgroups = list(set(normalized_labels))
 
         # Auto palette for them
-        colors = sns.color_palette(palette_name, len(unique_groups))
-        auto_palette = {g: c for g, c in zip(unique_groups, colors)}
+        colors = sns.color_palette(palette_name, len(unique_subgroups))
+        palette = {g: c for g, c in zip(unique_subgroups, colors)}
 
         # Add default color
-        auto_palette["__default__"] = default_color
+        palette["_"] = default_color
+
+        print(values)
+        print(groups)
+        print(subgrouping)
+        print(normalized_labels)
 
         sns.swarmplot(
-            data=df,
-            y="value",
-            x='x',
-            hue="group",
+            # data=df,
+
+            y=values,
+            x=groups,
+            hue=normalized_labels*num_groups,
             ax=ax,
             # color=color,
-            palette=auto_palette,
+            palette=palette,
             dodge=False,
+            legend=False,
             alpha=alpha,
             size=markersize * self.figure_scale_factor * size_scale,
             marker=marker,
@@ -741,11 +764,13 @@ class BaseStatPlot(Helpers):
         if not self.error:
             plt.show()
 
-    def save(self, path):
+    def save(self, path, format='png', dpi=150, transparent=True):
         if not self.error:
             plt.savefig(path,
                         pad_inches=0.1*self.figure_scale_factor,
-                        transparent=True,
+                        format=format,
+                        dpi=dpi,
+                        transparent=transparent,
                         )
 
     def close(self):
