@@ -113,7 +113,7 @@ class BaseStatPlot(Helpers):
                  figure_w=0,  # 0 means auto
                  **kwargs):
         self.data_groups = [group if group else None
-                            for group in data_groups] if any(self.data_groups) else [[0],[0]]
+                            for group in data_groups] if any(data_groups) else [[0],[0]]    # bad construction; write an assertion later
         self.n_groups = len(self.data_groups)
         self.p = p_value_exact
         self.testname = Test_Name
