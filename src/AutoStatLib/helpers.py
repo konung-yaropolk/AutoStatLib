@@ -47,27 +47,34 @@ class Helpers():
 
     def create_results_dict(self) -> dict:
 
+        # evaluate successfullness
+        if self.p_value != None:
+            self.successfull = True
+        else:
+            self.successfull = False
+            self.error = True
+
         self.stars_int = self.make_stars(
-            self.p_value.item()) if self.p_value else None
+            self.p_value.item()) if self.successfull else None
         self.stars_str = self.make_stars_printed(
-            self.stars_int) if self.p_value else ''
+            self.stars_int) if self.successfull else ''
 
         return {
-            'p_value': self.make_p_value_printed(self.p_value.item()) if self.p_value else None,
-            'Significance(p<0.05)':  True if self.p_value and self.p_value.item() < 0.05 else False,
+            'p_value': self.make_p_value_printed(self.p_value.item()) if self.successfull else None,
+            'Significance(p<0.05)':  True if self.successfull and self.p_value.item() < 0.05 else False,
             'Stars_Printed': self.stars_str,
             'Test_Name': self.test_name,
             'Groups_Compared': self.n_groups,
             'Population_Mean': self.popmean if self.n_groups == 1 else 'N/A',
-            'Data_Normaly_Distributed': self.parametric if self.p_value else None,
+            'Data_Normaly_Distributed': self.parametric if self.successfull else None,
             'Parametric_Test_Applied': True if self.test_id in self.test_ids_parametric else False,
-            'Paired_Test_Applied': self.paired if self.p_value else None,
+            'Paired_Test_Applied': self.paired if self.successfull else None,
             'Tails': self.tails,
-            'p_value_exact': self.p_value.item() if self.p_value else None,
+            'p_value_exact': self.p_value.item() if self.successfull else None,
             'Stars':  self.stars_int,
             # 'Stat_Value': self.test_stat.item(),
             'Warnings': self.warnings,
-            'Successfull_Test': True if self.p_value else False,
+            'Successfull_Test': (self.successfull and not self.error),
             'Groups_Name': self.groups_name,
             'Groups_N': [len(self.data[i]) for i in range(len(self.data))],
             'Groups_Median': [np.median(self.data[i]).item() for i in range(len(self.data))],
