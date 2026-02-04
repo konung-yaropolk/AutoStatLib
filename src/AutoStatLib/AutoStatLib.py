@@ -68,7 +68,7 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
         ]
         self.test_ids_parametric = [
             'anova_1w_ordinary',
-            'anova_1w_rm'
+            'anova_1w_rm',
             't_test_independent',
             't_test_paired',
             't_test_single_sample',
@@ -100,6 +100,8 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
             'param_test_with_non-normal_data': '\nWarning: Parametric test was manualy chosen for Not-Normaly distributed data.\n         The results might be skewed. \n         Please, run non-parametric test or preform automatic test selection.\n',
             'non-param_test_with_normal_data': '\nWarning: Non-Parametric test was manualy chosen for Normaly distributed data.\n         The results might be skewed. \n         Please, run parametric test or preform automatic test selection.\n',
             'no_pop_mean_set':                 '\nWarning: No Population Mean was set up for single-sample test, used default 0 value.\n         The results might be skewed. \n         Please, set the Population Mean and run the test again.\n',
+            # 'paired_test_with_independend_samples': '\nWarning: A paired test was manually selected, even though the samples were declared independent.\n         The results might be skewed. \n         Please, run test for independend samples or preform automatic test selection.\n',
+            # 'independend_test_with_paired_samples': '\nWarning: An independent test was manually selected, even though the samples were declared paired.\n         The results might be skewed. \n         Please, run test for paired samples or preform automatic test selection.\n',
         }
 
     def run_test(self, test='auto'):
@@ -139,7 +141,7 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
             assert test in self.test_ids_all or test == 'auto', 'Wrong test id choosen, ensure you called correct function'
             assert all(len(
                 group) >= 4 for group in self.data), 'Each group must contain at least four values'
-            assert not (self.paired is True
+            assert not (test in self.test_ids_dependent     # self.paired is True
                         and not all(len(lst) == len(self.data[0]) for lst in self.data)), 'Paired samples must have the same length'
             assert not (test in self.test_ids_dependent
                         and not all(len(lst) == len(self.data[0]) for lst in self.data)), 'Samples must have the same length for the dependend statistics test'
@@ -203,8 +205,14 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
         if test != 'auto' and self.parametric and test not in self.test_ids_parametric:
             self.AddWarning('non-param_test_with_normal_data')
 
-        # run the test
+        # Maybe unneeded checks for manually selected tests
+        # because user propably know what test they selected
+        # if test != 'auto' and not self.paired and test in self.test_ids_dependent:
+        #     self.AddWarning('paired_test_with_independend_samples')
+        # if test != 'auto' and self.paired and test not in self.test_ids_dependent:
+        #     self.AddWarning('independend_test_with_paired_samples')
 
+        # run the test
         if test in self.test_ids_all:
             self.run_test_by_id(test)
         else:

@@ -29,7 +29,7 @@ data = [
 
 # %%# initiate the analysis
 analysis = AutoStatLib.StatisticalAnalysis(
-    data, paired=paired, tails=tails, popmean=popmean, posthoc=True, subgrouping=[5])
+    data, paired=paired, tails=tails, popmean=popmean, posthoc=True, subgrouping=[1, 1, 1, 1, 1])
 
 # %%# Preform auto-selected test
 analysis.RunAuto()
