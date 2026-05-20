@@ -23,8 +23,6 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
                  groups_name=None,
                  subgrouping=None):
         
-        self.results = None
-        self.error = False
         self.groups_list = groups_list
         self.paired = paired
         self.tails = tails
@@ -271,7 +269,7 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
         self.run_test(test='wilcoxon')
 
     def GetResult(self):
-        if not self.results and not self.error:
+        if self.results is None and not self.error:
             print('No test chosen, no results to output')
             # self.run_test(test='auto')
             return self.results
@@ -282,7 +280,7 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
             return self.results
 
     def GetSummary(self):
-        if not self.results and not self.error:
+        if self.results is None and not self.error:
             print('No test chosen, no summary to output')
             # self.run_test(test='auto')
             return self.summary

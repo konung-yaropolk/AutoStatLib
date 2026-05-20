@@ -901,6 +901,16 @@ class SwarmStatPlot(BaseStatPlot):
 
 
 class SwarmStatPlot_subgrouping_betta(BaseStatPlot):
+    '''
+    Swarm plot with subgrouping support. Subgrouping is defined by the user as a list of labels (one per data point) 
+    that indicate which subgroup each data point belongs to. 
+    The plot will automatically assign different colors to each unique subgroup label, 
+    and add a legend to indicate which color corresponds to which subgroup.
+    Not tested well, use with caution.
+    For now, only supports one subgrouping across all groups, 
+    so the subgrouping list should have the same length as the total number of data points across all groups.
+    '''
+
 
     def plot(self, linewidth=1.8):
         if not self.error:
