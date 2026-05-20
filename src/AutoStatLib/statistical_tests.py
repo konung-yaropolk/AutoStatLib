@@ -6,10 +6,13 @@ from statsmodels.stats.multicomp import pairwise_tukeyhsd
 from statsmodels.stats.multitest import multipletests
 from scipy.stats import ttest_rel, ttest_ind, ttest_1samp, wilcoxon, mannwhitneyu, f_oneway, kruskal, friedmanchisquare
 
-# Known bugs:
+# Known issue: One-tailed p-value calculation is currently implemented by simply dividing the two-tailed p-value by 2. 
+# This approach is only valid when the observed effect is in the hypothesized direction. 
+# If the effect is in the opposite direction, the one-tailed p-value should be calculated as 1 - (p_two_tailed / 2). 
+# Without an alternative parameter to specify the expected direction of the effect, 
+# users may receive misleading results for one-tailed tests when the effect is in the opposite direction.
 
 # One-tailed p-value: no directionality check
-# File: statistical_tests.py — t_test_independent, t_test_paired, mann_whitney, wilcoxon, etc.
 # if self.tails == 1:
 #     p_value /= 2
 # Dividing a two-tailed p-value by 2 is only valid when the test statistic falls in the hypothesized direction. If the effect is in the opposite direction, the one-tailed p should be 1 - p_two_tailed/2. Without a alternative parameter exposed to the user, results for one-tailed tests where the effect direction is "wrong" will be misleading.
@@ -94,7 +97,11 @@ class StatisticalTests():
 
     def anova_1w_ordinary(self):
         stat, p_value = f_oneway(*self.data)
+
+        # bad practice to silently rewrite users input, 
+        # but this is a non-directional test so one-tailed doesn't make sense        
         self.tails = 2
+
         # if self.tails == 1 and p_value > 0.5:
         #     p_value /= 2
         # if self.tails == 1:
