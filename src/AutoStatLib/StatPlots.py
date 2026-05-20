@@ -274,65 +274,65 @@ class BaseStatPlot(Helpers):
                 fliersMarker = 'b+'
         # write a function to make a dictionary
         whiskersCapsStyles = dict()
-        if whiskersCapsColor != None:
+        if whiskersCapsColor is not None:
             whiskersCapsStyles["color"] = whiskersCapsColor
-        if whiskersCapsLineWidth != None:
+        if whiskersCapsLineWidth is not None:
             whiskersCapsStyles["linewidth"] = whiskersCapsLineWidth
-        if whiskersCapsLineStyle != None:
+        if whiskersCapsLineStyle is not None:
             whiskersCapsStyles['linestyle'] = whiskersCapsLineStyle
 
         boxProps = {"facecolor": (0, 0, 0, 0),
                     "edgecolor": "black", "linewidth": 1}
-        if boxFill != None:
+        if boxFill is not None:
             boxProps["facecolor"] = boxFill
-        if boxBorderColor != None:
+        if boxBorderColor is not None:
             boxProps["edgecolor"] = boxBorderColor
-        if boxBorderWidth != None:
+        if boxBorderWidth is not None:
             boxProps['linewidth'] = boxBorderWidth
-        # if boxBorderStyle != None:
+        # if boxBorderStyle is not None:
         #     boxProps['linestyle'] = boxBorderStyle  !!!this feature is not working with patch_artist that is needed for facecolor to work
 
         whiskersProps = {"color": 'black',
                          "linestyle": "solid", "linewidth": 1}
-        if whiskersColor != None:
+        if whiskersColor is not None:
             whiskersProps["color"] = whiskersColor
-        if whiskersLineStyle != None:
+        if whiskersLineStyle is not None:
             whiskersProps["linestyle"] = whiskersLineStyle
-        if whiskersLineWidth != None:
+        if whiskersLineWidth is not None:
             whiskersProps['linewidth'] = whiskersLineWidth
 
         flierProps = {"markerfacecolor": [
             0, 0, 0, 0], "markeredgecolor": "black", "linestyle": "solid", "markeredgewidth": 1}
-        if flierFillColor != None:
+        if flierFillColor is not None:
             flierProps["markerfacecolor"] = flierFillColor
-        if flierEdgeColor != None:
+        if flierEdgeColor is not None:
             flierProps["markeredgecolor"] = flierEdgeColor
-        if flierLineWidth != None:
+        if flierLineWidth is not None:
             flierProps['markeredgewidth'] = flierLineWidth
-        if flierLineStyle != None:
+        if flierLineStyle is not None:
             flierProps['linestyle'] = flierLineStyle
         medianProps = {"linestyle": 'solid', "linewidth": 1, "color": 'red'}
-        if medianColor != None:
+        if medianColor is not None:
             medianProps["color"] = medianColor
-        if medianLineStyle != None:
+        if medianLineStyle is not None:
             medianProps["linestyle"] = medianLineStyle
-        if medianLineWidth != None:
+        if medianLineWidth is not None:
             medianProps['linewidth'] = medianLineWidth
 
         meanProps = {"color": "black", "marker": 'o', "markerfacecolor": "black",
                      "markeredgecolor": "black", "linestyle": "solid", "linewidth": 1}
 
-        if meanMarker != None:
+        if meanMarker is not None:
             meanProps['marker'] = meanMarker
-        if meanFillColor != None:
+        if meanFillColor is not None:
             meanProps["markerfacecolor"] = meanFillColor
-        if meanEdgeColor != None:
+        if meanEdgeColor is not None:
             meanProps['markeredgecolor'] = meanEdgeColor
-        if meanLineColor != None:
+        if meanLineColor is not None:
             meanProps["color"] = meanLineColor
-        if meanLineStyle != None:
+        if meanLineStyle is not None:
             meanProps['linestyle'] = meanLineStyle
-        if meanLineWidth != None:
+        if meanLineWidth is not None:
             meanProps['linewidth'] = meanLineWidth
 
         bplot = ax.boxplot(self.data_groups,

@@ -48,7 +48,7 @@ class Helpers():
     def create_results_dict(self) -> dict:
 
         # evaluate successfullness
-        if self.p_value != None:
+        if self.p_value is not None:
             self.successfull = True
         else:
             self.successfull = False
