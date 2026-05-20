@@ -133,6 +133,8 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
         # delete the empty cols from input
         self.data = [col for col in self.data if any(
             x is not None for x in col)]
+        # re-calculate the number of groups after removing empty cols
+        self.n_groups = len(self.data)
 
         # User input assertion block
         try:
