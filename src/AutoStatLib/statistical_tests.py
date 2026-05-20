@@ -119,7 +119,7 @@ class StatisticalTests():
 
         df = self.matrix_to_dataframe(self.data)
         res = AnovaRM(df, 'Value', 'Row', within=['Col']).fit()
-        print(res)
+
         stat = res.anova_table.iloc[0][0]
         p_value = res.anova_table.iloc[0][3]
 
