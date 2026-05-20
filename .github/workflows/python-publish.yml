@@ -7,8 +7,9 @@ on:
 permissions:
   contents: read
  
+jobs:
+
 # # Tests before building and publishing the release — optional but recommended
-# jobs:
 #   test:
 #     runs-on: ubuntu-latest
  
