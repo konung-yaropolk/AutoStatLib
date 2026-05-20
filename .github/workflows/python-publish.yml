@@ -1,80 +1,62 @@
 name: Upload Python Package
- 
+
 on:
   release:
     types: [published]
- 
+
 permissions:
   contents: read
- 
-jobs:
 
-# # Tests before building and publishing the release — optional but recommended
-#   test:
-#     runs-on: ubuntu-latest
- 
-#     strategy:
-#       matrix:
-#         python-version: ["3.10", "3.11", "3.12"]
- 
-#     steps:
-#       - uses: actions/checkout@v4
- 
-#       - uses: actions/setup-python@v5
-#         with:
-#           python-version: ${{ matrix.python-version }}
- 
-#       - name: Install dependencies
-#         run: |
-#           python -m pip install --upgrade pip
-#           pip install pytest
-#           pip install .
- 
-#       - name: Run tests
-#         run: pytest tests/ -v
- 
+jobs:
   release-build:
     runs-on: ubuntu-latest
-    needs: test            # ← won't build unless all 3 Python versions pass
- 
+
     steps:
       - uses: actions/checkout@v4
- 
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
- 
+
       - name: Build release distributions
         run: |
+          # NOTE: put your own distribution build steps here.
           python -m pip install build
           python -m build
- 
+
       - name: Upload distributions
         uses: actions/upload-artifact@v4
         with:
           name: release-dists
           path: dist/
- 
+
   pypi-publish:
     runs-on: ubuntu-latest
     needs:
-      - release-build      # unchanged — still waits for the build artifact
+      - release-build
     permissions:
+      # IMPORTANT: this permission is mandatory for trusted publishing
       id-token: write
- 
+
+    # Dedicated environments with protections for publishing are strongly recommended.
+    # For more information, see: https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment#deployment-protection-rules
     environment:
       name: pypi
+      # OPTIONAL: uncomment and update to include your PyPI project URL in the deployment status:
       url: https://pypi.org/p/AutoStatLib
- 
+      #
+      # ALTERNATIVE: if your GitHub Release name is the PyPI project version string
+      # ALTERNATIVE: exactly, uncomment the following line instead:
+      # url: https://pypi.org/project/AutoStatLib/${{ github.event.release.name }}
+
     steps:
       - name: Retrieve release distributions
         uses: actions/download-artifact@v4
         with:
           name: release-dists
           path: dist/
- 
+
       - name: Publish release distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist/
- 
