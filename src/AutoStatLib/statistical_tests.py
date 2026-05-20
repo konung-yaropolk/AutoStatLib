@@ -6,6 +6,16 @@ from statsmodels.stats.multicomp import pairwise_tukeyhsd
 from statsmodels.stats.multitest import multipletests
 from scipy.stats import ttest_rel, ttest_ind, ttest_1samp, wilcoxon, mannwhitneyu, f_oneway, kruskal, friedmanchisquare
 
+# Known bugs:
+
+# One-tailed p-value: no directionality check
+# File: statistical_tests.py — t_test_independent, t_test_paired, mann_whitney, wilcoxon, etc.
+# if self.tails == 1:
+#     p_value /= 2
+# Dividing a two-tailed p-value by 2 is only valid when the test statistic falls in the hypothesized direction. If the effect is in the opposite direction, the one-tailed p should be 1 - p_two_tailed/2. Without a alternative parameter exposed to the user, results for one-tailed tests where the effect direction is "wrong" will be misleading.
+# Recommendation: Either expose an alternative='less'/'greater' parameter and pass it to scipy.stats directly (which handles it correctly), or document that one-tailed results are only valid when the observed effect is in the expected direction.
+
+
 
 class StatisticalTests():
     '''
