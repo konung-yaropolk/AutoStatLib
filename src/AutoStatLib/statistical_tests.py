@@ -98,10 +98,10 @@ class StatisticalTests():
             # Tukey's multiple comparisons
             tukey_result = pairwise_tukeyhsd(data_flat, group_labels)
 
-            list = tukey_result.pvalues.tolist()
+            tukey_pvalues = tukey_result.pvalues.tolist()
             n = self.n_groups
             # prepare posthoc matrix
-            self.posthoc_matrix = self.list_to_matrix(list, n)
+            self.posthoc_matrix = self.list_to_matrix(tukey_pvalues, n)
 
         return stat, p_value
 
