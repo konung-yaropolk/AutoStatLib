@@ -76,11 +76,7 @@ class StatisticalTests():
             case 'wilcoxon_single_sample': stat, p_value = self.wilcoxon_single_sample()
             case 'none': stat, p_value = (None, None)
 
-        if test_id in self.test_ids_dependent:
-            self.paired = True
-        else:
-            self.paired = False
-
+        self.paired_test_applied = test_id in self.test_ids_dependent
         self.test_name = test_names_dict[test_id]
         self.test_id = test_id
         self.test_stat = stat

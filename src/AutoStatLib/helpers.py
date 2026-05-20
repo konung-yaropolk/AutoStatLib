@@ -68,7 +68,7 @@ class Helpers():
             'Population_Mean': self.popmean if self.n_groups == 1 else 'N/A',
             'Data_Normaly_Distributed': self.parametric if self.successfull else None,
             'Parametric_Test_Applied': True if self.test_id in self.test_ids_parametric else False,
-            'Paired_Test_Applied': self.paired if self.successfull else None,
+            'Paired_Test_Applied': self.paired_test_applied if self.successfull else None,
             'Tails': self.tails,
             'p_value_exact': self.p_value.item() if self.successfull else None,
             'Stars':  self.stars_int,

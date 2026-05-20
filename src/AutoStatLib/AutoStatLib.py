@@ -100,8 +100,8 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
             'param_test_with_non-normal_data': '\nWarning: Parametric test was manualy chosen for Not-Normaly distributed data.\n         The results might be skewed. \n         Please, run non-parametric test or preform automatic test selection.\n',
             'non-param_test_with_normal_data': '\nWarning: Non-Parametric test was manualy chosen for Normaly distributed data.\n         The results might be skewed. \n         Please, run parametric test or preform automatic test selection.\n',
             'no_pop_mean_set':                 '\nWarning: No Population Mean was set up for single-sample test, used default 0 value.\n         The results might be skewed. \n         Please, set the Population Mean and run the test again.\n',
-            # 'paired_test_with_independend_samples': '\nWarning: A paired test was manually selected, even though the samples were declared independent.\n         The results might be skewed. \n         Please, run test for independend samples or preform automatic test selection.\n',
-            # 'independend_test_with_paired_samples': '\nWarning: An independent test was manually selected, even though the samples were declared paired.\n         The results might be skewed. \n         Please, run test for paired samples or preform automatic test selection.\n',
+            'paired_test_with_independend_samples': '\nWarning: A paired test was manually selected, even though the samples were declared independent.\n         The results might be skewed. \n         Please, run test for independend samples or preform automatic test selection.\n',
+            'independend_test_with_paired_samples': '\nWarning: An independent test was manually selected, even though the samples were declared paired.\n         The results might be skewed. \n         Please, run test for paired samples or preform automatic test selection.\n',
         }
 
     def run_test(self, test='auto'):
@@ -209,10 +209,10 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
 
         # Maybe unneeded checks for manually selected tests
         # because user propably know what test they selected
-        # if test != 'auto' and not self.paired and test in self.test_ids_dependent:
-        #     self.AddWarning('paired_test_with_independend_samples')
-        # if test != 'auto' and self.paired and test not in self.test_ids_dependent:
-        #     self.AddWarning('independend_test_with_paired_samples')
+        if test != 'auto' and not self.paired and test in self.test_ids_dependent:
+            self.AddWarning('paired_test_with_independend_samples')
+        if test != 'auto' and self.paired and test not in self.test_ids_dependent:
+            self.AddWarning('independend_test_with_paired_samples')
 
         # run the test
         if test in self.test_ids_all:
