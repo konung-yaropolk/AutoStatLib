@@ -79,8 +79,8 @@ class Helpers():
             'Groups_N': [len(self.data[i]) for i in range(len(self.data))],
             'Groups_Median': [np.median(self.data[i]).item() for i in range(len(self.data))],
             'Groups_Mean': [np.mean(self.data[i]).item() for i in range(len(self.data))],
-            'Groups_SD': [np.std(self.data[i]).item() for i in range(len(self.data))],
-            'Groups_SE': [np.std(self.data[i]).item() / np.sqrt(len(self.data[i])) for i in range(len(self.data))],
+            'Groups_SD': [np.std(self.data[i], ddof=1).item() for i in range(len(self.data))],
+            'Groups_SE': [np.std(self.data[i], ddof=1).item() / np.sqrt(len(self.data[i])) for i in range(len(self.data))],
             'subgrouping': self.subgrouping,
             # actually returns list of lists of numpy dtypes of float64, next make it return regular floats:
             'Samples': self.data,

@@ -145,8 +145,8 @@ class BaseStatPlot(Helpers):
         self.median = [
             np.median(self.data_groups[i]).item() for i in range(self.n_groups)]
         self.sd = [
-            np.std(self.data_groups[i]).item() for i in range(self.n_groups)]
-        self.sem = [np.std(self.data_groups[i]).item() / np.sqrt(len(self.data_groups[i])).item()
+            np.std(self.data_groups[i], ddof=1).item() for i in range(self.n_groups)]
+        self.sem = [np.std(self.data_groups[i], ddof=1).item() / np.sqrt(len(self.data_groups[i])).item()
                     for i in range(self.n_groups)]
 
         self.n = [len(i) for i in self.data_groups]
