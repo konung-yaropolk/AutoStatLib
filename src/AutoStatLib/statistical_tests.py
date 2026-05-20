@@ -186,7 +186,7 @@ class StatisticalTests():
         return stat, p_value
 
     def t_test_single_sample(self):
-        if self.popmean == None:
+        if self.popmean is None:
             self.popmean = 0
             self.AddWarning('no_pop_mean_set')
         stat, p_value = ttest_1samp(self.data[0], self.popmean)
@@ -201,7 +201,7 @@ class StatisticalTests():
         return stat, p_value
 
     def wilcoxon_single_sample(self):
-        if self.popmean == None:
+        if self.popmean is None:
             self.popmean = 0
             self.AddWarning('no_pop_mean_set')
         data = [i - self.popmean for i in self.data[0]]
