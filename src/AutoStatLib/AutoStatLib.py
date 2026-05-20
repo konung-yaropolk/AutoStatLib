@@ -189,8 +189,7 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
             poll_print = tuple(
                 '+' if x is True else '-' if x is False else ' ' if x is None else 'e' for x in poll)
             self.normals.append(isnormal)
-            self.log(
-                f'    {self.groups_name[i].ljust(11, ' ')[:11]}:    {poll_print[0]}   {poll_print[1]}   {poll_print[2]}   {poll_print[3]}   so disrtibution seems {"normal" if isnormal else "not normal"}')
+            self.log(f'    {self.groups_name[i].ljust(11, ' ')[:11]}:    {poll_print[0]}   {poll_print[1]}   {poll_print[2]}   {poll_print[3]}   so disrtibution seems {"normal" if isnormal else "not normal"}')
         self.parametric = all(self.normals)
 
         # print test choosen
