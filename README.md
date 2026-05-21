@@ -1,5 +1,6 @@
 # AutoStatLib - python library for automated statistical analysis
 
+[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/konung-yaropolk/AutoStatLib/tests.yml?label=Tests&color=green)](https://github.com/konung-yaropolk/AutoStatLib/actions/workflows/tests.yml)
 [![pypi_version](https://img.shields.io/pypi/v/AutoStatLib?label=PyPI&color=green)](https://pypi.org/project/AutoStatLib)
 [![GitHub Release](https://img.shields.io/github/v/release/konung-yaropolk/AutoStatLib?label=GitHub&color=green&link=https%3A%2F%2Fgithub.com%2Fkonung-yaropolk%2FAutoStatLib)](https://github.com/konung-yaropolk/AutoStatLib)
 [![PyPI - License](https://img.shields.io/pypi/l/AutoStatLib)](https://pypi.org/project/AutoStatLib)
