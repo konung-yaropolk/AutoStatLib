@@ -22,5 +22,10 @@ jobs:
           pip install -e .
           pip install pytest
 
+      - name: Type-check with mypy
+        run: |
+          pip install mypy
+          mypy src/AutoStatLib/ --ignore-missing-imports --no-strict-optional
+
       - name: Run tests
         run: pytest tests/ -v
