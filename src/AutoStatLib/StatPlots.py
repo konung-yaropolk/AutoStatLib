@@ -525,10 +525,11 @@ class BaseStatPlot(Helpers):
         # Add default color
         palette["_"] = default_color
 
-        print(values)
-        print(groups)
-        print(subgrouping)
-        print(normalized_labels)
+        # Debug prints
+        # print(values)
+        # print(groups)
+        # print(subgrouping)
+        # print(normalized_labels)
 
         sns.swarmplot(
             # data=df,
