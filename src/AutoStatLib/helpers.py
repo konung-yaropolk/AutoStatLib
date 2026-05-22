@@ -66,15 +66,25 @@ class Helpers(StatAnalysisProtocol):
         )
 
         return {
-            "p_value": self.make_p_value_printed(self.p_value.item()) if self.successfull else None,
-            "Significance(p<0.05)": True if self.successfull and self.p_value.item() < 0.05 else False,
+            "p_value": (
+                self.make_p_value_printed(self.p_value.item())
+                if self.successfull
+                else None
+            ),
+            "Significance(p<0.05)": (
+                True if self.successfull and self.p_value.item() < 0.05 else False
+            ),
             "Stars_Printed": self.stars_str,
             "Test_Name": self.test_name,
             "Groups_Compared": self.n_groups,
             "Population_Mean": self.popmean if self.n_groups == 1 else "N/A",
             "Data_Normaly_Distributed": self.parametric if self.successfull else None,
-            "Parametric_Test_Applied": True if self.test_id in self.test_ids_parametric else False,
-            "Paired_Test_Applied": self.paired_test_applied if self.successfull else None,
+            "Parametric_Test_Applied": (
+                True if self.test_id in self.test_ids_parametric else False
+            ),
+            "Paired_Test_Applied": (
+                self.paired_test_applied if self.successfull else None
+            ),
             "Tails": self.tails,
             "p_value_exact": self.p_value.item() if self.successfull else None,
             "Stars": self.stars_int,
@@ -82,9 +92,15 @@ class Helpers(StatAnalysisProtocol):
             "Successfull_Test": (self.successfull and not self.error),
             "Groups_Name": self.groups_name,
             "Groups_N": [len(self.data[i]) for i in range(len(self.data))],
-            "Groups_Median": [np.median(self.data[i]).item() for i in range(len(self.data))],
-            "Groups_Mean": [np.mean(self.data[i]).item() for i in range(len(self.data))],
-            "Groups_SD": [np.std(self.data[i], ddof=1).item() for i in range(len(self.data))],
+            "Groups_Median": [
+                np.median(self.data[i]).item() for i in range(len(self.data))
+            ],
+            "Groups_Mean": [
+                np.mean(self.data[i]).item() for i in range(len(self.data))
+            ],
+            "Groups_SD": [
+                np.std(self.data[i], ddof=1).item() for i in range(len(self.data))
+            ],
             "Groups_SE": [
                 np.std(self.data[i], ddof=1).item() / np.sqrt(len(self.data[i]))
                 for i in range(len(self.data))
@@ -92,19 +108,33 @@ class Helpers(StatAnalysisProtocol):
             "subgrouping": self.subgrouping,
             # actually returns list of lists of numpy dtypes of float64, next make it return regular floats:
             "Samples": self.data,
-            "Posthoc_Tests_Name": self.posthoc_name if self.posthoc_name is not None else "",
+            "Posthoc_Tests_Name": (
+                self.posthoc_name if self.posthoc_name is not None else ""
+            ),
             "Posthoc_Matrix": self.posthoc_matrix if self.posthoc_matrix else [],
             "Posthoc_Matrix_bool": (
                 [[bool(element) for element in row] for row in self.posthoc_matrix]
-                if self.posthoc_matrix else []
+                if self.posthoc_matrix
+                else []
             ),
             "Posthoc_Matrix_printed": (
-                [[self.make_p_value_printed(element) for element in row] for row in self.posthoc_matrix]
-                if self.posthoc_matrix else []
+                [
+                    [self.make_p_value_printed(element) for element in row]
+                    for row in self.posthoc_matrix
+                ]
+                if self.posthoc_matrix
+                else []
             ),
             "Posthoc_Matrix_stars": (
-                [[self.make_stars_printed(self.make_stars(element)) for element in row] for row in self.posthoc_matrix]
-                if self.posthoc_matrix else []
+                [
+                    [
+                        self.make_stars_printed(self.make_stars(element))
+                        for element in row
+                    ]
+                    for row in self.posthoc_matrix
+                ]
+                if self.posthoc_matrix
+                else []
             ),
         }
 

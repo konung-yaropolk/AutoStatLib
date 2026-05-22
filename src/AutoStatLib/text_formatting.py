@@ -8,7 +8,9 @@ from typing import Optional
 class TextFormatting(StatAnalysisProtocol):
     """Text formatting mixin."""
 
-    def autospace(self, elements_list: list[str], space: int, delimiter: str = " ") -> str:
+    def autospace(
+        self, elements_list: list[str], space: int, delimiter: str = " "
+    ) -> str:
         output = ""
         for i, element in enumerate(elements_list):
             if i == len(elements_list):
@@ -58,16 +60,28 @@ class TextFormatting(StatAnalysisProtocol):
             if i == "Warnings":
                 self.log(i, ":", " " * shift, len(self.results[i]))
             elif i == "Posthoc_Tests_Name":
-                self.log(i, ":", " " * shift, self.results[i]) if self.results[i] != "" else "N/A"
+                (
+                    self.log(i, ":", " " * shift, self.results[i])
+                    if self.results[i] != ""
+                    else "N/A"
+                )
             elif i == "Posthoc_Matrix":
                 self.log(
-                    i, ":", " " * shift,
-                    "{0}x{0} matrix".format(len(self.results[i])) if self.results[i] else "N/A",
+                    i,
+                    ":",
+                    " " * shift,
+                    (
+                        "{0}x{0} matrix".format(len(self.results[i]))
+                        if self.results[i]
+                        else "N/A"
+                    ),
                 )
-            elif i in ("Samples",
-                       "Posthoc_Matrix_bool",
-                       "Posthoc_Matrix_printed",
-                       "Posthoc_Matrix_stars"):
+            elif i in (
+                "Samples",
+                "Posthoc_Matrix_bool",
+                "Posthoc_Matrix_printed",
+                "Posthoc_Matrix_stars",
+            ):
                 pass
             else:
                 self.log(i, ":", " " * shift, self.results[i])

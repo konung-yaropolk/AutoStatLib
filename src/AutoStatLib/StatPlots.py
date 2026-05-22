@@ -43,9 +43,7 @@ class Helpers:
         # (the best color combination is 9 imho)
         # but we can change it later
         if colormap:
-            colors_edge: list = [
-                c if color.is_color_like(c) else "k" for c in colormap
-            ]
+            colors_edge: list = [c if color.is_color_like(c) else "k" for c in colormap]
             colors_fill: list = self.colors_to_rgba(colors_edge)
         else:
             n_colors = 9
@@ -92,14 +90,14 @@ class Helpers:
         return list(map(list, zip(*data)))
 
     def expand_counts(self, counts: list[int]) -> list[int]:
-        '''
-            The input is a list of integers. 
-            Output is list of matrices.
-            Each int represents each output matrix and defines
-            how many columns to include in the matrix.
-            Eg: input:  [3,2,1]
-                output: [0,0,0,1,1,2]
-        '''
+        """
+        The input is a list of integers.
+        Output is list of matrices.
+        Each int represents each output matrix and defines
+        how many columns to include in the matrix.
+        Eg: input:  [3,2,1]
+            output: [0,0,0,1,1,2]
+        """
         output: list[int] = []
         counts = list(filter(None, counts))
         for n, c in enumerate(counts, start=0):
@@ -145,7 +143,9 @@ class BaseStatPlot(Helpers):
         self.p: Optional[float] = p_value_exact
         self.testname: str = Test_Name
         self.posthoc_name: str = Posthoc_Tests_Name
-        self.posthoc_matrix: list[list[float]] = Posthoc_Matrix if Posthoc_Matrix is not None else []
+        self.posthoc_matrix: list[list[float]] = (
+            Posthoc_Matrix if Posthoc_Matrix is not None else []
+        )
         self.n_significance_bars: int = 1
         self.dependent: bool = Paired_Test_Applied
         self.plot_title: str = plot_title
@@ -177,7 +177,8 @@ class BaseStatPlot(Helpers):
             np.std(self.data_groups[i], ddof=1).item() for i in range(self.n_groups)
         ]
         self.sem: list[float] = [
-            np.std(self.data_groups[i], ddof=1).item() / np.sqrt(len(self.data_groups[i]))
+            np.std(self.data_groups[i], ddof=1).item()
+            / np.sqrt(len(self.data_groups[i]))
             for i in range(self.n_groups)
         ]
 
@@ -280,12 +281,12 @@ class BaseStatPlot(Helpers):
         flierLineWidth: float = 2,
         flierLineStyle: Optional[str] = None,
         vertical: bool = True,
-                    # whiskers when one float is tukeys parameter, when a pair of percentages,
-                    # defines the percentiles where the whiskers should be If a float,
-                    # the lower whisker is at the lowest datum above Q1 - whis*(Q3-Q1),
-                    # and the upper whisker at the highest datum below Q3 + whis*(Q3-Q1),
-                    # where Q1 and Q3 are the first and third quartiles. The default value of whis = 1.5
-                    # corresponds to Tukey's original definition of boxplots.
+        # whiskers when one float is tukeys parameter, when a pair of percentages,
+        # defines the percentiles where the whiskers should be If a float,
+        # the lower whisker is at the lowest datum above Q1 - whis*(Q3-Q1),
+        # and the upper whisker at the highest datum below Q3 + whis*(Q3-Q1),
+        # where Q1 and Q3 are the first and third quartiles. The default value of whis = 1.5
+        # corresponds to Tukey's original definition of boxplots.
         whiskers: float = 1.5,
         bootstrap: Optional[int] = None,
         whiskersColor: Optional[str] = None,
@@ -326,7 +327,11 @@ class BaseStatPlot(Helpers):
         if whiskersCapsLineStyle is not None:
             whiskersCapsStyles["linestyle"] = whiskersCapsLineStyle
 
-        boxProps: dict = {"facecolor": (0, 0, 0, 0), "edgecolor": "black", "linewidth": 1}
+        boxProps: dict = {
+            "facecolor": (0, 0, 0, 0),
+            "edgecolor": "black",
+            "linewidth": 1,
+        }
         if boxFill is not None:
             boxProps["facecolor"] = boxFill
         if boxBorderColor is not None:
@@ -462,7 +467,9 @@ class BaseStatPlot(Helpers):
         Missing labels → default_color.
         """
         values: list[float] = [v for group in self.data_groups for v in group]
-        groups: list[int] = [i for i, group in enumerate(self.data_groups) for _ in group]
+        groups: list[int] = [
+            i for i, group in enumerate(self.data_groups) for _ in group
+        ]
 
         group_counts: list[int] = [len(g) for g in self.data_groups]
         max_points: int = max(group_counts) if group_counts else 1
@@ -471,7 +478,7 @@ class BaseStatPlot(Helpers):
         xlim = ax.get_xlim()
         width_per_group: float = (xlim[1] - xlim[0]) / max(num_groups, 1)
         density: float = max_points / (width_per_group + 1e-6)
-        size_scale: float = max(0.1, min(1, 3.5 / (density ** 0.5)))
+        size_scale: float = max(0.1, min(1, 3.5 / (density**0.5)))
 
         sns.swarmplot(
             x=groups,
@@ -520,7 +527,9 @@ class BaseStatPlot(Helpers):
             subgrouping = [0]
 
         values_flat: list[float] = [v for group in self.data_groups for v in group]
-        groups_flat: list[int] = [i for i, group in enumerate(self.data_groups) for _ in group]
+        groups_flat: list[int] = [
+            i for i, group in enumerate(self.data_groups) for _ in group
+        ]
         values_arr: np.ndarray = np.array(values_flat)
 
         group_counts: list[int] = [len(g) for g in self.data_groups]
@@ -530,13 +539,12 @@ class BaseStatPlot(Helpers):
         xlim = ax.get_xlim()
         width_per_group: float = (xlim[1] - xlim[0]) / max(num_groups, 1)
         density: float = max_points / (width_per_group + 1e-6)
-        size_scale: float = max(0.1, min(1, 3.5 / (density ** 0.5)))
+        size_scale: float = max(0.1, min(1, 3.5 / (density**0.5)))
 
         normalized_labels: list
         if set(subgrouping) != {0}:
             normalized_labels = [
-                lbl if lbl not in (None, "", np.nan, 0) else "_"
-                for lbl in subgrouping
+                lbl if lbl not in (None, "", np.nan, 0) else "_" for lbl in subgrouping
             ]
             len_data = int(len(values_flat) / 2)
             len_lbl = len(normalized_labels)
@@ -559,7 +567,7 @@ class BaseStatPlot(Helpers):
 
         # Extract unique non-default labels
         # unique_subgroups = [g for g in df["subgroup"].unique() if g != "__default__"]
-       
+
         unique_subgroups: list = list(set(normalized_labels))
         colors = sns.color_palette(palette_name, len(unique_subgroups))
         palette: dict = {g: c for g, c in zip(unique_subgroups, colors)}
@@ -683,12 +691,20 @@ class BaseStatPlot(Helpers):
     ) -> None:
 
         posthoc_matrix_printed: list[list[str]] = (
-            [[self.make_p_value_printed(element) for element in row] for row in self.posthoc_matrix]
-            if self.posthoc_matrix else []
+            [
+                [self.make_p_value_printed(element) for element in row]
+                for row in self.posthoc_matrix
+            ]
+            if self.posthoc_matrix
+            else []
         )
         posthoc_matrix_stars: list[list[str]] = (
-            [[self.make_stars_printed(self.make_stars(element)) for element in row] for row in self.posthoc_matrix]
-            if self.posthoc_matrix else []
+            [
+                [self.make_stars_printed(self.make_stars(element)) for element in row]
+                for row in self.posthoc_matrix
+            ]
+            if self.posthoc_matrix
+            else []
         )
 
         def draw_bar(
@@ -719,17 +735,32 @@ class BaseStatPlot(Helpers):
             if self.print_p_label or self.print_stars:
                 y: float = (1.05 + order * vspace) * self.y_max
                 h: float = capsize * self.y_max
-                ax.plot([x1, x1, x2, x2], [y, y + h, y + h, y],
-                        lw=linewidth * self.figure_scale_factor, c=col)
+                ax.plot(
+                    [x1, x1, x2, x2],
+                    [y, y + h, y + h, y],
+                    lw=linewidth * self.figure_scale_factor,
+                    c=col,
+                )
                 ax.text(
-                    (x1 + x2) * 0.5, y + h, label,
-                    ha="center", va="bottom", color=col,
-                    fontweight="bold", fontsize=8 * self.figure_scale_factor,
+                    (x1 + x2) * 0.5,
+                    y + h,
+                    label,
+                    ha="center",
+                    va="bottom",
+                    color=col,
+                    fontweight="bold",
+                    fontsize=8 * self.figure_scale_factor,
                 )
 
         def draw_bar_from_posthoc_matrix(x1: int, x2: int, o: int) -> None:
-            draw_bar(posthoc_matrix_printed[x1][x2], posthoc_matrix_stars[x1][x2],
-                     order=o, x1=x1, x2=x2)
+            draw_bar(
+                posthoc_matrix_printed[x1][x2],
+                posthoc_matrix_stars[x1][x2],
+                order=o,
+                x1=x1,
+                x2=x2,
+            )
+
         # bars_args= []
         # vshift=[0 for _ in self.data_groups]
 
@@ -783,7 +814,10 @@ class BaseStatPlot(Helpers):
             if self.groups_name != [""]:
                 ax.set_xticks(range(self.n_groups))
                 ax.set_xticklabels(
-                    [self.groups_name[i % len(self.groups_name)] for i in range(self.n_groups)],
+                    [
+                        self.groups_name[i % len(self.groups_name)]
+                        for i in range(self.n_groups)
+                    ],
                     fontweight="regular",
                     fontsize=8 * self.figure_scale_factor,
                 )
@@ -805,7 +839,8 @@ class BaseStatPlot(Helpers):
         ax.yaxis.set_tick_params(labelsize=12 * self.figure_scale_factor)
         ax.spines["left"].set_linewidth(linewidth * self.figure_scale_factor)
         ax.tick_params(
-            axis="y", which="both",
+            axis="y",
+            which="both",
             length=linewidth * 2 * self.figure_scale_factor,
             width=linewidth * self.figure_scale_factor,
         )
@@ -817,19 +852,29 @@ class BaseStatPlot(Helpers):
         ax: matplotlib.axes.Axes,
     ) -> None:
         if self.plot_title:
-            ax.set_title(self.plot_title, fontsize=12 * self.figure_scale_factor, fontweight="bold")
+            ax.set_title(
+                self.plot_title,
+                fontsize=12 * self.figure_scale_factor,
+                fontweight="bold",
+            )
         if self.x_label:
-            ax.set_xlabel(self.x_label, fontsize=10 * self.figure_scale_factor, fontweight="bold")
+            ax.set_xlabel(
+                self.x_label, fontsize=10 * self.figure_scale_factor, fontweight="bold"
+            )
         if self.y_label:
-            ax.set_ylabel(self.y_label, fontsize=10 * self.figure_scale_factor, fontweight="bold")
+            ax.set_ylabel(
+                self.y_label, fontsize=10 * self.figure_scale_factor, fontweight="bold"
+            )
         fig.text(
-            0.95, 0.0,
+            0.95,
+            0.0,
             "{}{}\nn={}".format(
                 self.testname,
                 (", " + self.posthoc_name) if self.posthoc_name else "",
                 str(self.n)[1:-1] if not self.dependent else str(self.n[0]),
             ),
-            ha="right", va="bottom",
+            ha="right",
+            va="bottom",
             fontsize=8 * self.figure_scale_factor,
             fontweight="regular",
         )
@@ -868,6 +913,7 @@ class BaseStatPlot(Helpers):
 # Concrete plot classes
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class BarStatPlot(BaseStatPlot):
 
     def plot(self, linewidth: float = 1.8) -> None:  # type: ignore[override]
@@ -885,17 +931,17 @@ class BarStatPlot(BaseStatPlot):
 
 
 class ViolinStatPlot(BaseStatPlot):
-    '''
-        Violin plot, for adjusting see
-        https://matplotlib.org/stable/gallery/statistics/customized_violin.html#sphx-glr-gallery-statistics-customized-violin-py
-        https://medium.com/@mohammadaryayi/anything-about-violin-plots-in-matplotlib-ffd58a62bbb5
+    """
+    Violin plot, for adjusting see
+    https://matplotlib.org/stable/gallery/statistics/customized_violin.html#sphx-glr-gallery-statistics-customized-violin-py
+    https://medium.com/@mohammadaryayi/anything-about-violin-plots-in-matplotlib-ffd58a62bbb5
 
-        Kernel Density Estimation (violin shape prediction approach)
-        https://scikit-learn.org/stable/modules/density.html
+    Kernel Density Estimation (violin shape prediction approach)
+    https://scikit-learn.org/stable/modules/density.html
 
-        SeaBorn violins:
-        https://seaborn.pydata.org/archive/0.11/generated/seaborn.violinplot.html
-    '''
+    SeaBorn violins:
+    https://seaborn.pydata.org/archive/0.11/generated/seaborn.violinplot.html
+    """
 
     def plot(self, linewidth: float = 1.8) -> None:  # type: ignore[override]
         if not self.error:
@@ -960,15 +1006,15 @@ class SwarmStatPlot(BaseStatPlot):
 
 
 class SwarmStatPlot_subgrouping_betta(BaseStatPlot):
-    '''
-    Swarm plot with subgrouping support. Subgrouping is defined by the user as a list of labels (one per data point) 
-    that indicate which subgroup each data point belongs to. 
-    The plot will automatically assign different colors to each unique subgroup label, 
+    """
+    Swarm plot with subgrouping support. Subgrouping is defined by the user as a list of labels (one per data point)
+    that indicate which subgroup each data point belongs to.
+    The plot will automatically assign different colors to each unique subgroup label,
     and add a legend to indicate which color corresponds to which subgroup.
     Not tested well, use with caution.
-    For now, only supports one subgrouping across all groups, 
+    For now, only supports one subgrouping across all groups,
     so the subgrouping list should have the same length as the total number of data points across all groups.
-    '''
+    """
 
     def plot(self, linewidth: float = 1.8) -> None:  # type: ignore[override]
         if not self.error:
@@ -977,7 +1023,9 @@ class SwarmStatPlot_subgrouping_betta(BaseStatPlot):
                 self.add_median_marker(ax, x, linewidth=linewidth)
                 self.add_mean_marker(ax, x, linewidth=linewidth)
                 self.add_errorbar_sd(ax, x, linewidth=linewidth)
-            self.add_swarm_with_alternate_colors(ax, subgrouping=self.subgrouping_arrange)
+            self.add_swarm_with_alternate_colors(
+                ax, subgrouping=self.subgrouping_arrange
+            )
             self.add_significance_bars(ax, linewidth)
             self.add_titles_and_labels(fig, ax)
             self.axes_formatting(ax, linewidth)

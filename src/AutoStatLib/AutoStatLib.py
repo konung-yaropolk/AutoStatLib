@@ -192,7 +192,11 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
         self.posthoc_name = ""
 
         self.log("\n" + "-" * 67)
-        self.log("Statistical analysis initiated for data in {} groups\n".format(len(self.groups_list)))
+        self.log(
+            "Statistical analysis initiated for data in {} groups\n".format(
+                len(self.groups_list)
+            )
+        )
 
         # Coerce input to float, drop non-numeric values
         self.data = self.floatify_recursive(self.groups_list)  # type: ignore[assignment]
@@ -294,7 +298,9 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
         # Build and print results
         self.results = self.create_results_dict()
         self.print_results()
-        self.log("\n\nResults above are accessible as a dictionary via GetResult() method")
+        self.log(
+            "\n\nResults above are accessible as a dictionary via GetResult() method"
+        )
         self.log("-" * 67 + "\n")
 
         if self.verbose is True:
@@ -397,4 +403,6 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
 
 
 if __name__ == "__main__":
-    print("This package works as an imported module only.\nUse \"import AutoStatLib\" statement")
+    print(
+        'This package works as an imported module only.\nUse "import AutoStatLib" statement'
+    )

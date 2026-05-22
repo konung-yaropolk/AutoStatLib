@@ -56,7 +56,9 @@ class NormalityTests(StatAnalysisProtocol):
 
         return (sw, lf, ad, ap)
 
-    def anderson_get_p(self, data: list[float], dist: str = "norm") -> tuple[float, Optional[float]]:
+    def anderson_get_p(
+        self, data: list[float], dist: str = "norm"
+    ) -> tuple[float, Optional[float]]:
         """
         Calculate the p-value for the Anderson-Darling test using the method described in:
         *Computation of Probability Associated with Anderson-Darling Statistic*,
@@ -71,17 +73,17 @@ class NormalityTests(StatAnalysisProtocol):
         ad, _critical_values, _significance_levels = anderson(data, dist=dist)
 
         # Adjust statistic for small sample sizes
-        s: float = ad * (1 + 0.75 / n + 2.25 / (n ** 2))
+        s: float = ad * (1 + 0.75 / n + 2.25 / (n**2))
 
         p: Optional[float]
         if s >= 0.6:
-            p = e ** (1.2937 - 5.709 * s + 0.0186 * s ** 2)
+            p = e ** (1.2937 - 5.709 * s + 0.0186 * s**2)
         elif s > 0.34:
-            p = e ** (0.9177 - 4.279 * s - 1.38 * s ** 2)
+            p = e ** (0.9177 - 4.279 * s - 1.38 * s**2)
         elif s > 0.2:
-            p = 1 - e ** (-8.318 + 42.796 * s - 59.938 * s ** 2)
+            p = 1 - e ** (-8.318 + 42.796 * s - 59.938 * s**2)
         elif s <= 0.2:
-            p = 1 - e ** (-13.436 + 101.14 * s - 223.73 * s ** 2)
+            p = 1 - e ** (-13.436 + 101.14 * s - 223.73 * s**2)
         else:
             p = None
 
