@@ -1,58 +1,77 @@
-from re import X
-import seaborn as sns
+from __future__ import annotations
+
+from typing import Optional
 import random
-# from math import comb
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
+
+import matplotlib.axes
 import matplotlib.colors as mcolors
 import matplotlib.colors as color
+import matplotlib.figure
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
 
 
-class Helpers():
+class Helpers:
 
-    def colors_to_rgba(self, colors, alpha=0.35):
-        rgba_colors = []
+    def colors_to_rgba(
+        self,
+        colors: list[str | tuple],
+        alpha: float = 0.35,
+    ) -> list[tuple[float, float, float, float]]:
+        rgba_colors: list[tuple[float, float, float, float]] = []
         for col in colors:
             rgba = list(mcolors.to_rgba(col))
             rgba[3] = alpha
-            rgba_colors.append(tuple(rgba))
+            rgba_colors.append((rgba[0], rgba[1], rgba[2], rgba[3]))
         return rgba_colors
 
-    def get_colors(self, colormap):
+    def get_colors(
+        self,
+        colormap: list[str | tuple] | None,
+    ) -> tuple[list, list]:
+        """
+        Return (edge_colors, fill_colors) for all groups.
+
+        If ``colormap`` is provided each entry is validated; invalid entries
+        fall back to black.  Otherwise the ``'Set1'`` matplotlib colormap is
+        used with 9 colours.
+        """
         # If a colormap is provided, use it;
         # else generate default one with n_colors colors
         # (the best color combination is 9 imho)
         # but we can change it later
         if colormap:
-            colors_edge = [c if color.is_color_like(
-                c) else 'k' for c in colormap]
-            colors_fill = self.colors_to_rgba(colors_edge)
+            colors_edge: list = [
+                c if color.is_color_like(c) else "k" for c in colormap
+            ]
+            colors_fill: list = self.colors_to_rgba(colors_edge)
         else:
-            n_colors = 9  # len(self.data_groups)
-            cmap = plt.get_cmap('Set1')
+            n_colors = 9
+            cmap = plt.get_cmap("Set1")
             colors_edge = [cmap(i / n_colors) for i in range(n_colors)]
-            colors_edge.insert(0, 'k')
+            colors_edge.insert(0, "k")
             colors_fill = self.colors_to_rgba(colors_edge)
         return colors_edge, colors_fill
 
-    def make_p_value_printed(self, p) -> str:
+    def make_p_value_printed(self, p: Optional[float]) -> str:
         if p is not None:
             if p > 0.99:
-                return 'p>0.99'
+                return "p>0.99"
             elif p >= 0.01:
-                return f'p={p:.2g}'
+                return f"p={p:.2g}"
             elif p >= 0.001:
-                return f'p={p:.2g}'
+                return f"p={p:.2g}"
             elif p >= 0.0001:
-                return f'p={p:.1g}'
+                return f"p={p:.1g}"
             elif p < 0.0001:
-                return 'p<0.0001'
+                return "p<0.0001"
             else:
-                return 'N/A'
-        return 'N/A'
+                return "N/A"
+        return "N/A"
 
-    def make_stars(self, p) -> int:
+    def make_stars(self, p: Optional[float]) -> int:
         if p is not None:
             if p < 0.0001:
                 return 4
@@ -66,13 +85,13 @@ class Helpers():
                 return 0
         return 0
 
-    def make_stars_printed(self, n) -> str:
-        return '*' * n if n else 'ns'
+    def make_stars_printed(self, n: int) -> str:
+        return "*" * n if n else "ns"
 
-    def transpose(self, data):
+    def transpose(self, data: list[list]) -> list[list]:
         return list(map(list, zip(*data)))
 
-    def expand_counts(self, counts):
+    def expand_counts(self, counts: list[int]) -> list[int]:
         '''
             The input is a list of integers. 
             Output is list of matrices.
@@ -81,324 +100,360 @@ class Helpers():
             Eg: input:  [3,2,1]
                 output: [0,0,0,1,1,2]
         '''
-        output = []
+        output: list[int] = []
         counts = list(filter(None, counts))
         for n, c in enumerate(counts, start=0):
             output.extend([n] * c)
-        if output == []:
+        if not output:
             output = [0]
         return output
 
 
 class BaseStatPlot(Helpers):
 
-    def __init__(self,
-                 data_groups,
-                 p_value_exact=None,
-                 Test_Name='',
-                 Paired_Test_Applied=False,
-                 plot_title='',
-                 x_label='',
-                 y_label='',
-                 print_x_labels=True,
-                 Groups_Name=None,
-                 subgrouping=[],
-                 Posthoc_Matrix=[],
-                 Posthoc_Tests_Name='',
-                 colormap=None,
-                 print_p_label=True,
-                 print_stars=True,
-                 figure_scale_factor=1,
-                 figure_h=4,
-                 figure_w=0,  # 0 means auto
-                 **kwargs):
-        self.data_groups = [group if group else None
-                            for group in data_groups] if any(data_groups) else [[0],[0]]    # bad construction; write an assertion later
-        self.n_groups = len(self.data_groups)
-        self.p = p_value_exact
-        self.testname = Test_Name
-        self.posthoc_name = Posthoc_Tests_Name
-        self.posthoc_matrix = Posthoc_Matrix
-        self.n_significance_bars = 1
-        self.dependent = Paired_Test_Applied
-        self.plot_title = plot_title
-        self.x_label = x_label
-        self.y_label = y_label
-        self.print_p_label = print_p_label
-        self.print_stars = print_stars
-        self.print_x_labels = print_x_labels
-        self.figure_scale_factor = figure_scale_factor
-        self.figure_h = figure_h
-        self.figure_w = figure_w
-        self.error = False
+    def __init__(
+        self,
+        data_groups: list[list[float]],
+        p_value_exact: Optional[float] = None,
+        Test_Name: str = "",
+        Paired_Test_Applied: bool = False,
+        plot_title: str = "",
+        x_label: str = "",
+        y_label: str = "",
+        print_x_labels: bool = True,
+        Groups_Name: Optional[list[str]] = None,
+        subgrouping: Optional[list] = None,
+        Posthoc_Matrix: Optional[list[list[float]]] = None,
+        Posthoc_Tests_Name: str = "",
+        colormap: Optional[list] = None,
+        print_p_label: bool = True,
+        print_stars: bool = True,
+        figure_scale_factor: float = 1,
+        figure_h: float = 4,
+        figure_w: float = 0,  # 0 means auto
+        **kwargs,
+    ) -> None:
+
+        # Sanitise input data — replace empty groups with None; fall back to
+        # a dummy two-group dataset so the object is always in a valid state.
+        self.data_groups: list[list[float]] = (
+            [group if group else None for group in data_groups]  # type: ignore[misc]
+            if any(data_groups)
+            else [[0], [0]]
+        )
+        self.n_groups: int = len(self.data_groups)
+        self.p: Optional[float] = p_value_exact
+        self.testname: str = Test_Name
+        self.posthoc_name: str = Posthoc_Tests_Name
+        self.posthoc_matrix: list[list[float]] = Posthoc_Matrix if Posthoc_Matrix is not None else []
+        self.n_significance_bars: int = 1
+        self.dependent: bool = Paired_Test_Applied
+        self.plot_title: str = plot_title
+        self.x_label: str = x_label
+        self.y_label: str = y_label
+        self.print_p_label: bool = print_p_label
+        self.print_stars: bool = print_stars
+        self.print_x_labels: bool = print_x_labels
+        self.figure_scale_factor: float = figure_scale_factor
+        self.figure_h: float = figure_h
+        self.figure_w: float = figure_w
+        self.error: bool = False
 
         try:
-            assert any(self.data_groups), 'There is no input data'
+            assert any(self.data_groups), "There is no input data"
         except AssertionError as error:
             self.error = True
-            print('AutoStatLib.StatPlots Error :', error)
+            print("AutoStatLib.StatPlots Error :", error)
             return
 
         #  sd sem mean and median calculation if they are not provided
-        self.mean = [
-            np.mean(self.data_groups[i]).item() for i in range(self.n_groups)]
-        self.median = [
-            np.median(self.data_groups[i]).item() for i in range(self.n_groups)]
-        self.sd = [
-            np.std(self.data_groups[i], ddof=1).item() for i in range(self.n_groups)]
-        self.sem = [np.std(self.data_groups[i], ddof=1).item() / np.sqrt(len(self.data_groups[i])).item()
-                    for i in range(self.n_groups)]
+        self.mean: list[float] = [
+            np.mean(self.data_groups[i]).item() for i in range(self.n_groups)
+        ]
+        self.median: list[float] = [
+            np.median(self.data_groups[i]).item() for i in range(self.n_groups)
+        ]
+        self.sd: list[float] = [
+            np.std(self.data_groups[i], ddof=1).item() for i in range(self.n_groups)
+        ]
+        self.sem: list[float] = [
+            np.std(self.data_groups[i], ddof=1).item() / np.sqrt(len(self.data_groups[i]))
+            for i in range(self.n_groups)
+        ]
 
-        self.n = [len(i) for i in self.data_groups]
-        self.p_printed = self.make_p_value_printed(self.p)
-        self.stars_printed = self.make_stars_printed(self.make_stars(self.p))
+        self.n: list[int] = [len(i) for i in self.data_groups]
+        self.p_printed: str = self.make_p_value_printed(self.p)
+        self.stars_printed: str = self.make_stars_printed(self.make_stars(self.p))
 
-        self.groups_name = Groups_Name if Groups_Name is not None else [
-            '']
+        self.groups_name: list[str] = Groups_Name if Groups_Name is not None else [""]
+        self.subgrouping: list = subgrouping if subgrouping else [0]
+        self.subgrouping_arrange: list[int] = self.expand_counts(self.subgrouping)
 
-        self.subgrouping = subgrouping if subgrouping else [0]
-        self.subgrouping_arrange = self.expand_counts(self.subgrouping)
-
-        if colormap is not None and colormap != ['']:
-            colormap = colormap
-            self.colormap_default = False
+        _colormap: list = []
+        if colormap is not None and colormap != [""]:
+            _colormap = colormap
+            self.colormap_default: bool = False
         else:
-            colormap = []
             self.colormap_default = True
-        self.colors_edge, self.colors_fill = self.get_colors(colormap)
+        self.colors_edge, self.colors_fill = self.get_colors(_colormap or None)
 
-        self.y_max = max([max(data) for data in self.data_groups])
+        self.y_max: float = max(max(data) for data in self.data_groups)
 
-    def setup_figure(self, ):
+    # ------------------------------------------------------------------ #
+    # Figure / axes helpers                                              #
+    # ------------------------------------------------------------------ #
+
+    def setup_figure(self) -> tuple[matplotlib.figure.Figure, matplotlib.axes.Axes]:
         fig, ax = plt.subplots(
             dpi=100,
-            figsize=((0.5 + 0.9 * self.n_groups)
-                     if not self.figure_w else self.figure_w, self.figure_h)
+            figsize=(
+                (0.5 + 0.9 * self.n_groups) if not self.figure_w else self.figure_w,
+                self.figure_h,
+            ),
         )
-
         figure_size = plt.gcf().get_size_inches()
-        plt.gcf().set_size_inches(self.figure_scale_factor * figure_size)
-
+        scaled = self.figure_scale_factor * figure_size
+        plt.gcf().set_size_inches((float(scaled[0]), float(scaled[1])))
         return fig, ax
 
-    def add_barplot(self, ax, x,
-                    fill=True,
-                    linewidth=2,
-                    zorder=1):
+    def add_barplot(
+        self,
+        ax: matplotlib.axes.Axes,
+        x: int,
+        fill: bool = True,
+        linewidth: float = 2,
+        zorder: int = 1,
+    ) -> None:
+        ax.bar(
+            x,
+            self.mean[x],
+            width=0.75,
+            facecolor=self.colors_fill[x % len(self.colors_fill)],
+            edgecolor=self.colors_edge[x % len(self.colors_edge)],
+            fill=fill,
+            linewidth=linewidth * self.figure_scale_factor,
+            zorder=zorder,
+        )
 
-        # Plot bar for mean
-        ax.bar(x, self.mean[x],
-               width=0.75,
-               facecolor=self.colors_fill[x % len(self.colors_fill)],
-               edgecolor=self.colors_edge[x % len(self.colors_edge)],
-               fill=fill,
-               linewidth=linewidth*self.figure_scale_factor,
-               zorder=zorder)
-
-    def add_violinplot(self, ax, x,
-                       linewidth=2,
-                       widths=0.85,
-                       vert=True,
-                       showmeans=False,
-                       showmedians=False,
-                       showextrema=False,
-                       points=200,
-                       bw_method=0.5):
-
-        vp = ax.violinplot(self.data_groups[x], positions=[x], widths=widths, vert=vert,
-                           showmeans=showmeans, showmedians=showmedians, showextrema=showextrema,
-                           points=points, bw_method=bw_method)
-
-        for pc in vp['bodies']:
+    def add_violinplot(
+        self,
+        ax: matplotlib.axes.Axes,
+        x: int,
+        linewidth: float = 2,
+        widths: float = 0.85,
+        vert: bool = True,
+        showmeans: bool = False,
+        showmedians: bool = False,
+        showextrema: bool = False,
+        points: int = 200,
+        bw_method: float = 0.5,
+    ) -> None:
+        vp = ax.violinplot(
+            self.data_groups[x],
+            positions=[x],
+            widths=widths,
+            vert=vert,
+            showmeans=showmeans,
+            showmedians=showmedians,
+            showextrema=showextrema,
+            points=points,
+            bw_method=bw_method,
+        )
+        for pc in vp["bodies"]:  # type: ignore[attr-defined]
             pc.set_facecolor(self.colors_fill[x % len(self.colors_fill)])
             pc.set_edgecolor(self.colors_edge[x % len(self.colors_edge)])
-            pc.set_linewidth(linewidth*self.figure_scale_factor)
+            pc.set_linewidth(linewidth * self.figure_scale_factor)
 
-    def add_boxplot(self, ax,
-                    # positions of boxes, defaults to range(1,n+1)
-                    positions=None,
-                    widths=0.6,
-                    tickLabels=None,
-                    notch=False,
-                    confidences=None,
-                    fliers=False,
-                    fliersMarker='',
-                    flierFillColor=None,
-                    flierEdgeColor=None,
-                    flierLineWidth=2,
-                    flierLineStyle=None,
-                    vertical=True,
+    def add_boxplot(
+        # positions of boxes, defaults to range(1,n+1)
+        self,
+        ax: matplotlib.axes.Axes,
+        positions: Optional[list[int]] = None,
+        widths: float = 0.6,
+        tickLabels: Optional[list[str]] = None,
+        notch: bool = False,
+        confidences: Optional[list] = None,
+        fliers: bool = False,
+        fliersMarker: str = "",
+        flierFillColor: Optional[str] = None,
+        flierEdgeColor: Optional[str] = None,
+        flierLineWidth: float = 2,
+        flierLineStyle: Optional[str] = None,
+        vertical: bool = True,
                     # whiskers when one float is tukeys parameter, when a pair of percentages,
                     # defines the percentiles where the whiskers should be If a float,
                     # the lower whisker is at the lowest datum above Q1 - whis*(Q3-Q1),
                     # and the upper whisker at the highest datum below Q3 + whis*(Q3-Q1),
                     # where Q1 and Q3 are the first and third quartiles. The default value of whis = 1.5
                     # corresponds to Tukey's original definition of boxplots.
-                    whiskers=1.5,
-                    bootstrap=None,
-                    whiskersColor=None,
-                    whiskersLineWidth=2,
-                    whiskersLineStyle=None,
-                    showWhiskersCaps=True,
-                    whiskersCapsWidths=None,
-                    whiskersCapsColor=None,
-                    whiskersCapsLineWidth=2,
-                    whiskersCapsLineStyle=None,
-                    boxFill=None,
-                    boxBorderColor=None,
-                    boxBorderWidth=2,
-                    userMedians=None,
-                    medianColor=None,
-                    medianLineStyle=None,
-                    medianLineWidth=2,
-                    showMeans=False,
-                    meanMarker=None,
-                    meanFillColor=None,
-                    meanEdgeColor=None,
-                    meanLine=False,
-                    meanLineColor=None,
-                    meanLineStyle=None,
-                    meanLineWidth=2,
-                    autorange=False
-                    ):
+        whiskers: float = 1.5,
+        bootstrap: Optional[int] = None,
+        whiskersColor: Optional[str] = None,
+        whiskersLineWidth: float = 2,
+        whiskersLineStyle: Optional[str] = None,
+        showWhiskersCaps: bool = True,
+        whiskersCapsWidths: Optional[float] = None,
+        whiskersCapsColor: Optional[str] = None,
+        whiskersCapsLineWidth: float = 2,
+        whiskersCapsLineStyle: Optional[str] = None,
+        boxFill: Optional[str] = None,
+        boxBorderColor: Optional[str] = None,
+        boxBorderWidth: float = 2,
+        userMedians: Optional[list[float]] = None,
+        medianColor: Optional[str] = None,
+        medianLineStyle: Optional[str] = None,
+        medianLineWidth: float = 2,
+        showMeans: bool = False,
+        meanMarker: Optional[str] = None,
+        meanFillColor: Optional[str] = None,
+        meanEdgeColor: Optional[str] = None,
+        meanLine: bool = False,
+        meanLineColor: Optional[str] = None,
+        meanLineStyle: Optional[str] = None,
+        meanLineWidth: float = 2,
+        autorange: bool = False,
+    ) -> None:
 
         positions = list(range(self.n_groups))
-        # if (not hasattr(positions, "__len__") or
-        #     len(positions) != self.length or
-        #         any(not isinstance(x, (int, float)) for x in positions)):
-        #     positions = None
-        if fliers == False:
-            fliersMarker = ""
-        else:
-            if fliersMarker == "":
-                fliersMarker = 'b+'
-        # write a function to make a dictionary
-        whiskersCapsStyles = dict()
+
+        fliersMarker = "" if not fliers else (fliersMarker or "b+")
+
+        whiskersCapsStyles: dict = {}
         if whiskersCapsColor is not None:
             whiskersCapsStyles["color"] = whiskersCapsColor
         if whiskersCapsLineWidth is not None:
             whiskersCapsStyles["linewidth"] = whiskersCapsLineWidth
         if whiskersCapsLineStyle is not None:
-            whiskersCapsStyles['linestyle'] = whiskersCapsLineStyle
+            whiskersCapsStyles["linestyle"] = whiskersCapsLineStyle
 
-        boxProps = {"facecolor": (0, 0, 0, 0),
-                    "edgecolor": "black", "linewidth": 1}
+        boxProps: dict = {"facecolor": (0, 0, 0, 0), "edgecolor": "black", "linewidth": 1}
         if boxFill is not None:
             boxProps["facecolor"] = boxFill
         if boxBorderColor is not None:
             boxProps["edgecolor"] = boxBorderColor
         if boxBorderWidth is not None:
-            boxProps['linewidth'] = boxBorderWidth
-        # if boxBorderStyle is not None:
-        #     boxProps['linestyle'] = boxBorderStyle  !!!this feature is not working with patch_artist that is needed for facecolor to work
+            boxProps["linewidth"] = boxBorderWidth
 
-        whiskersProps = {"color": 'black',
-                         "linestyle": "solid", "linewidth": 1}
+        whiskersProps: dict = {"color": "black", "linestyle": "solid", "linewidth": 1}
         if whiskersColor is not None:
             whiskersProps["color"] = whiskersColor
         if whiskersLineStyle is not None:
             whiskersProps["linestyle"] = whiskersLineStyle
         if whiskersLineWidth is not None:
-            whiskersProps['linewidth'] = whiskersLineWidth
+            whiskersProps["linewidth"] = whiskersLineWidth
 
-        flierProps = {"markerfacecolor": [
-            0, 0, 0, 0], "markeredgecolor": "black", "linestyle": "solid", "markeredgewidth": 1}
+        flierProps: dict = {
+            "markerfacecolor": [0, 0, 0, 0],
+            "markeredgecolor": "black",
+            "linestyle": "solid",
+            "markeredgewidth": 1,
+        }
         if flierFillColor is not None:
             flierProps["markerfacecolor"] = flierFillColor
         if flierEdgeColor is not None:
             flierProps["markeredgecolor"] = flierEdgeColor
         if flierLineWidth is not None:
-            flierProps['markeredgewidth'] = flierLineWidth
+            flierProps["markeredgewidth"] = flierLineWidth
         if flierLineStyle is not None:
-            flierProps['linestyle'] = flierLineStyle
-        medianProps = {"linestyle": 'solid', "linewidth": 1, "color": 'red'}
+            flierProps["linestyle"] = flierLineStyle
+
+        medianProps: dict = {"linestyle": "solid", "linewidth": 1, "color": "red"}
         if medianColor is not None:
             medianProps["color"] = medianColor
         if medianLineStyle is not None:
             medianProps["linestyle"] = medianLineStyle
         if medianLineWidth is not None:
-            medianProps['linewidth'] = medianLineWidth
+            medianProps["linewidth"] = medianLineWidth
 
-        meanProps = {"color": "black", "marker": 'o', "markerfacecolor": "black",
-                     "markeredgecolor": "black", "linestyle": "solid", "linewidth": 1}
-
+        meanProps: dict = {
+            "color": "black",
+            "marker": "o",
+            "markerfacecolor": "black",
+            "markeredgecolor": "black",
+            "linestyle": "solid",
+            "linewidth": 1,
+        }
         if meanMarker is not None:
-            meanProps['marker'] = meanMarker
+            meanProps["marker"] = meanMarker
         if meanFillColor is not None:
             meanProps["markerfacecolor"] = meanFillColor
         if meanEdgeColor is not None:
-            meanProps['markeredgecolor'] = meanEdgeColor
+            meanProps["markeredgecolor"] = meanEdgeColor
         if meanLineColor is not None:
             meanProps["color"] = meanLineColor
         if meanLineStyle is not None:
-            meanProps['linestyle'] = meanLineStyle
+            meanProps["linestyle"] = meanLineStyle
         if meanLineWidth is not None:
-            meanProps['linewidth'] = meanLineWidth
+            meanProps["linewidth"] = meanLineWidth
 
-        bplot = ax.boxplot(self.data_groups,
-                           positions=positions,
-                           widths=widths,
-                           # tick_labels=tickLabels,
-                           notch=notch,
-                           conf_intervals=confidences,
-                           sym=fliersMarker,
-                           flierprops=flierProps,
-                           vert=vertical,
-                           whis=whiskers,
-                           whiskerprops=whiskersProps,
-                           showcaps=showWhiskersCaps,
-                           capwidths=whiskersCapsWidths,
-                           capprops=whiskersCapsStyles,
-                           boxprops=boxProps,
-                           usermedians=userMedians,
-                           medianprops=medianProps,
-                           bootstrap=bootstrap,
-                           showmeans=showMeans,
-                           meanline=meanLine,
-                           meanprops=meanProps,
-                           autorange=autorange,
-                           patch_artist=True)
+        bplot = ax.boxplot(
+            self.data_groups,
+            positions=positions,
+            widths=widths,
+            notch=notch,
+            conf_intervals=confidences,
+            sym=fliersMarker,
+            flierprops=flierProps,
+            vert=vertical,
+            whis=whiskers,
+            whiskerprops=whiskersProps,
+            showcaps=showWhiskersCaps,
+            capwidths=whiskersCapsWidths,
+            capprops=whiskersCapsStyles,
+            boxprops=boxProps,
+            usermedians=userMedians,
+            medianprops=medianProps,
+            bootstrap=bootstrap,
+            showmeans=showMeans,
+            meanline=meanLine,
+            meanprops=meanProps,
+            autorange=autorange,
+            patch_artist=True,
+        )
 
-        # apply use r colormap if provided
-        # else left white face with black border
         if not self.colormap_default:
-            for x, patch in enumerate(bplot['boxes']):
-                patch.set_facecolor(
-                    self.colors_fill[x % len(self.colors_fill)])
+            for x, patch in enumerate(bplot["boxes"]):
+                patch.set_facecolor(self.colors_fill[x % len(self.colors_fill)])
 
-    def add_scatter(self, ax,
-                    color='k',
-                    alpha=0.5,
-                    marker='o',
-                    markersize=8,
-                    linewidth=1.2,
-                    zorder=2):
-        # Generate x jitter pool.
-        spread_pool = []  # storing x positions of data points
+    def add_scatter(
+        self,
+        ax: matplotlib.axes.Axes,
+        color: str = "k",
+        alpha: float = 0.5,
+        marker: str = "o",
+        markersize: float = 8,
+        linewidth: float = 1.2,
+        zorder: int = 2,
+    ) -> None:
+        spread_pool: list[tuple] = []
         for i, data in enumerate(self.data_groups):
-            spread = tuple(random.uniform(-.10, .10) for _ in data)
+            spread = tuple(random.uniform(-0.10, 0.10) for _ in data)
             spread_pool.append(tuple(i + s for s in spread))
 
         for i, data in enumerate(self.transpose(self.data_groups)):
-            # Plot individual data points with x jitter.
-            ax.plot(self.transpose(spread_pool)[i], data,
-                    color=color,
-                    alpha=alpha,
-                    marker=marker,
-                    markersize=markersize*self.figure_scale_factor,
-                    linewidth=linewidth*self.figure_scale_factor,
-                    # Connect the data points if desired.
-                    linestyle='-' if self.dependent else '',
-                    zorder=zorder-1)
+            ax.plot(
+                self.transpose([list(t) for t in spread_pool])[i],
+                data,
+                color=color,
+                alpha=alpha,
+                marker=marker,
+                markersize=markersize * self.figure_scale_factor,
+                linewidth=linewidth * self.figure_scale_factor,
+                linestyle="-" if self.dependent else "",
+                zorder=zorder - 1,
+            )
 
-    def add_swarm(self, ax,
-                  color='dimgrey',
-                  default_color='dimgrey',
-                  alpha=1,
-                  marker='o',
-                  markersize=8,
-                  linewidth=1.4,
-                  zorder=2):
+    def add_swarm(
+        self,
+        ax: matplotlib.axes.Axes,
+        color: str = "dimgrey",
+        default_color: str = "dimgrey",
+        alpha: float = 1,
+        marker: str = "o",
+        markersize: float = 8,
+        linewidth: float = 1.4,
+        zorder: int = 2,
+    ) -> None:
         """
         Add a swarmplot (scatter-like plot with non-overlapping points)
         to the provided Axes. Automatically reduce point size if overcrowded.
@@ -406,25 +461,17 @@ class BaseStatPlot(Helpers):
         to all unique non-missing group labels.
         Missing labels → default_color.
         """
+        values: list[float] = [v for group in self.data_groups for v in group]
+        groups: list[int] = [i for i, group in enumerate(self.data_groups) for _ in group]
 
-        # Prepare flattened data
-        values = [v for i, group in enumerate(self.data_groups) for v in group]
-        groups = [i for i, group in enumerate(self.data_groups) for _ in group]
+        group_counts: list[int] = [len(g) for g in self.data_groups]
+        max_points: int = max(group_counts) if group_counts else 1
+        num_groups: int = len(self.data_groups)
 
-        # Estimate overcrowding for adaptive sizing
-        group_counts = [len(g) for g in self.data_groups]
-        max_points = max(group_counts) if group_counts else 1
-
-        # Determine horizontal space per category
-        num_groups = len(self.data_groups)
         xlim = ax.get_xlim()
-        width_per_group = (xlim[1] - xlim[0]) / max(num_groups, 1)
-
-        # Empirical density threshold: if points are too dense, shrink
-        density = max_points / (width_per_group + 1e-6)
-
-        # Tunable constants to approximate best function of size adjustment
-        size_scale = max(0.1, min(1, 3.5 / (density ** 0.5)))
+        width_per_group: float = (xlim[1] - xlim[0]) / max(num_groups, 1)
+        density: float = max_points / (width_per_group + 1e-6)
+        size_scale: float = max(0.1, min(1, 3.5 / (density ** 0.5)))
 
         sns.swarmplot(
             x=groups,
@@ -438,25 +485,30 @@ class BaseStatPlot(Helpers):
             zorder=zorder,
         )
 
-        # Connect points if data paired
-        if self.dependent == True:
+        if self.dependent:
             for i, data in enumerate(self.transpose(self.data_groups)):
-                ax.plot(range(len(data)), data,
-                        color=color,
-                        alpha=alpha * 0.25,
-                        linewidth=linewidth * self.figure_scale_factor,
-                        zorder=zorder - 1)
+                ax.plot(
+                    range(len(data)),
+                    data,
+                    color=color,
+                    alpha=alpha * 0.25,
+                    linewidth=linewidth * self.figure_scale_factor,
+                    zorder=zorder - 1,
+                )
 
-    def add_swarm_with_alternate_colors(self, ax,
-                                        color='dimgrey',
-                                        default_color='dimgrey',
-                                        palette_name="tab10",
-                                        subgrouping=[0],
-                                        alpha=1,
-                                        marker='o',
-                                        markersize=8,
-                                        linewidth=1.4,
-                                        zorder=2):
+    def add_swarm_with_alternate_colors(
+        self,
+        ax: matplotlib.axes.Axes,
+        color: str = "dimgrey",
+        default_color: str = "dimgrey",
+        palette_name: str = "tab10",
+        subgrouping: Optional[list] = None,
+        alpha: float = 1,
+        marker: str = "o",
+        markersize: float = 8,
+        linewidth: float = 1.4,
+        zorder: int = 2,
+    ) -> None:
         """
         Add a swarmplot (scatter-like plot with non-overlapping points)
         to the provided Axes. Automatically reduce point size if overcrowded.
@@ -464,43 +516,34 @@ class BaseStatPlot(Helpers):
         to all unique non-missing group labels.
         Missing labels → default_color.
         """
+        if subgrouping is None:
+            subgrouping = [0]
 
-        # Prepare flattened data
-        values = [v for i, group in enumerate(self.data_groups) for v in group]
-        groups = [i for i, group in enumerate(self.data_groups) for _ in group]
-        values = np.array(values)
+        values_flat: list[float] = [v for group in self.data_groups for v in group]
+        groups_flat: list[int] = [i for i, group in enumerate(self.data_groups) for _ in group]
+        values_arr: np.ndarray = np.array(values_flat)
 
-        # Estimate overcrowding for adaptive sizing
-        group_counts = [len(g) for g in self.data_groups]
-        max_points = max(group_counts) if group_counts else 1
+        group_counts: list[int] = [len(g) for g in self.data_groups]
+        max_points: int = max(group_counts) if group_counts else 1
+        num_groups: int = len(self.data_groups)
 
-        # Determine horizontal space per category
-        num_groups = len(self.data_groups)
         xlim = ax.get_xlim()
-        width_per_group = (xlim[1] - xlim[0]) / max(num_groups, 1)
+        width_per_group: float = (xlim[1] - xlim[0]) / max(num_groups, 1)
+        density: float = max_points / (width_per_group + 1e-6)
+        size_scale: float = max(0.1, min(1, 3.5 / (density ** 0.5)))
 
-        # Empirical density threshold: if points are too dense, shrink
-        density = max_points / (width_per_group + 1e-6)
-
-        # Tunable constants to approximate best function of size adjustment
-        size_scale = max(0.1, min(1, 3.5 / (density ** 0.5)))
-
-        # Normalize labels (missing -> __default__)
+        normalized_labels: list
         if set(subgrouping) != {0}:
             normalized_labels = [
-                lbl if (lbl not in (None, "", np.nan, 0)) else "_"
-                for lbl in subgrouping]
-
-            len_data = int(len(values)/2)
+                lbl if lbl not in (None, "", np.nan, 0) else "_"
+                for lbl in subgrouping
+            ]
+            len_data = int(len(values_flat) / 2)
             len_lbl = len(normalized_labels)
-
             if len_lbl < len_data:
-                # Extend normalized_labels to match data points count
-                normalized_labels.extend(['last'] * (len_data - len_lbl))
+                normalized_labels.extend(["last"] * (len_data - len_lbl))
             elif len_lbl > len_data:
-                # Shrink normalized_labels to match data points count
-                normalized_labels = normalized_labels[0:len_data]
-
+                normalized_labels = normalized_labels[:len_data]
         else:
             normalized_labels = ["_" for _ in self.data_groups[0]]
 
@@ -516,29 +559,23 @@ class BaseStatPlot(Helpers):
 
         # Extract unique non-default labels
         # unique_subgroups = [g for g in df["subgroup"].unique() if g != "__default__"]
-        unique_subgroups = list(set(normalized_labels))
-
-        # Auto palette for them
+       
+        unique_subgroups: list = list(set(normalized_labels))
         colors = sns.color_palette(palette_name, len(unique_subgroups))
-        palette = {g: c for g, c in zip(unique_subgroups, colors)}
-
-        # Add default color
+        palette: dict = {g: c for g, c in zip(unique_subgroups, colors)}
         palette["_"] = default_color
 
-        # Debug prints
-        # print(values)
-        # print(groups)
+        # debugging prints
+        # print(values_flat)
+        # print(groups_flat)
         # print(subgrouping)
         # print(normalized_labels)
 
         sns.swarmplot(
-            # data=df,
-
-            y=values,
-            x=groups,
-            hue=normalized_labels*num_groups,
+            y=values_arr,
+            x=groups_flat,
+            hue=normalized_labels * num_groups,
             ax=ax,
-            # color=color,
             palette=palette,
             dodge=False,
             legend=False,
@@ -549,120 +586,150 @@ class BaseStatPlot(Helpers):
             zorder=zorder,
         )
 
-        # # Connect points if data paired
-        # if self.dependent == True:
-        #     for i, data in enumerate(self.transpose(self.data_groups)):
-        #         ax.plot(range(len(data)), data,
-        #                 color=color,
-        #                 alpha=alpha * 0.25,
-        #                 linewidth=linewidth * self.figure_scale_factor,
-        #                 zorder=zorder - 1)
+    def add_errorbar_sd(
+        self,
+        ax: matplotlib.axes.Axes,
+        x: int,
+        capsize: float = 4,
+        ecolor: str = "r",
+        linewidth: float = 2,
+        zorder: int = 3,
+    ) -> None:
+        ax.errorbar(
+            x,
+            self.mean[x],
+            yerr=self.sd[x],
+            fmt="none",
+            capsize=capsize * self.figure_scale_factor,
+            ecolor=ecolor,
+            linewidth=linewidth * self.figure_scale_factor,
+            elinewidth=linewidth * self.figure_scale_factor,
+            capthick=linewidth * self.figure_scale_factor,
+            zorder=zorder,
+        )
 
-    def add_errorbar_sd(self, ax, x,
-                        capsize=4,
-                        ecolor='r',
-                        linewidth=2,
-                        zorder=3):
-        # Add error bars
-        ax.errorbar(x, self.mean[x],
-                    yerr=self.sd[x],
-                    fmt='none',
-                    capsize=capsize*self.figure_scale_factor,
-                    ecolor=ecolor,
-                    linewidth=linewidth*self.figure_scale_factor,
-                    elinewidth=linewidth*self.figure_scale_factor,
-                    capthick=linewidth*self.figure_scale_factor,
-                    zorder=zorder)
+    def add_errorbar_sem(
+        self,
+        ax: matplotlib.axes.Axes,
+        x: int,
+        capsize: float = 5,
+        ecolor: str = "r",
+        linewidth: float = 2,
+        zorder: int = 3,
+    ) -> None:
+        ax.errorbar(
+            x,
+            self.mean[x],
+            yerr=self.sem[x],
+            fmt="none",
+            capsize=capsize * self.figure_scale_factor,
+            ecolor=ecolor,
+            linewidth=linewidth * self.figure_scale_factor,
+            elinewidth=linewidth * self.figure_scale_factor,
+            capthick=linewidth * self.figure_scale_factor,
+            zorder=zorder,
+        )
 
-    def add_errorbar_sem(self, ax, x,
-                         capsize=5,
-                         ecolor='r',
-                         linewidth=2,
-                         zorder=3):
-        # Add error bars
-        ax.errorbar(x, self.mean[x],
-                    yerr=self.sem[x],
-                    fmt='none',
-                    capsize=capsize*self.figure_scale_factor,
-                    ecolor=ecolor,
-                    linewidth=linewidth*self.figure_scale_factor,
-                    elinewidth=linewidth*self.figure_scale_factor,
-                    capthick=linewidth*self.figure_scale_factor,
-                    zorder=zorder)
+    def add_mean_marker(
+        self,
+        ax: matplotlib.axes.Axes,
+        x: int,
+        marker: str = "_",
+        markerfacecolor: str = "#00000000",
+        markeredgecolor: str = "r",
+        markersize: float = 20,
+        linewidth: float = 2,
+        zorder: int = 3,
+    ) -> None:
+        ax.plot(
+            x,
+            self.mean[x],
+            marker=marker,
+            markerfacecolor=markerfacecolor,
+            markeredgecolor=markeredgecolor,
+            markersize=markersize * self.figure_scale_factor,
+            markeredgewidth=linewidth * self.figure_scale_factor,
+            zorder=zorder,
+        )
 
-    def add_mean_marker(self, ax, x,
-                        marker='_',
-                        markerfacecolor='#00000000',
-                        markeredgecolor='r',
-                        markersize=20,
-                        linewidth=2,
-                        zorder=3):
-        # Overlay mean marker
-        ax.plot(x, self.mean[x],
-                marker=marker,
-                markerfacecolor=markerfacecolor,
-                markeredgecolor=markeredgecolor,
-                markersize=markersize*self.figure_scale_factor,
-                markeredgewidth=linewidth*self.figure_scale_factor,
-                zorder=zorder)
+    def add_median_marker(
+        self,
+        ax: matplotlib.axes.Axes,
+        x: int,
+        marker: str = "o",
+        markerfacecolor: str = "#FFFFFFFF",
+        markeredgecolor: str = "r",
+        markersize: float = 6,
+        linewidth: float = 2,
+        zorder: int = 4,
+    ) -> None:
+        ax.plot(
+            x,
+            self.median[x],
+            marker=marker,
+            markerfacecolor=markerfacecolor,
+            markeredgecolor=markeredgecolor,
+            markersize=markersize * self.figure_scale_factor,
+            markeredgewidth=linewidth * self.figure_scale_factor,
+            zorder=zorder,
+        )
 
-    def add_median_marker(self, ax, x,
-                          marker='o',
-                          markerfacecolor="#FFFFFFFF",
-                          markeredgecolor='r',
-                          markersize=6,
-                          linewidth=2,
-                          zorder=4):
-        # Overlay median marker
-        ax.plot(x, self.median[x],
-                marker=marker,
-                markerfacecolor=markerfacecolor,
-                markeredgecolor=markeredgecolor,
-                markersize=markersize*self.figure_scale_factor,
-                markeredgewidth=linewidth*self.figure_scale_factor,
-                zorder=zorder)
+    def add_significance_bars(
+        self,
+        ax: matplotlib.axes.Axes,
+        linewidth: float = 2,
+        capsize: float = 0.01,
+        col: str = "k",
+    ) -> None:
 
-    def add_significance_bars(self, ax,
-                              linewidth=2,
-                              capsize=0.01,
-                              col='k'):
+        posthoc_matrix_printed: list[list[str]] = (
+            [[self.make_p_value_printed(element) for element in row] for row in self.posthoc_matrix]
+            if self.posthoc_matrix else []
+        )
+        posthoc_matrix_stars: list[list[str]] = (
+            [[self.make_stars_printed(self.make_stars(element)) for element in row] for row in self.posthoc_matrix]
+            if self.posthoc_matrix else []
+        )
 
-        # # Estimate how many bars needed
-        # self.n_significance_bars = comb(
-        #     self.n_groups, 2) if self.n_groups > 2 else 1
-
-        posthoc_matrix_printed = [[self.make_p_value_printed(element) for element in row]
-                                  for row in self.posthoc_matrix] if self.posthoc_matrix else []
-        posthoc_matrix_stars = [[self.make_stars_printed(self.make_stars(element)) for element in row]
-                                for row in self.posthoc_matrix] if self.posthoc_matrix else []
-
-        def draw_bar(p, stars, order=0, x1=0, x2=self.n_groups-1, capsize=capsize, linewidth=linewidth, col=col):
-
+        def draw_bar(
+            p: str,
+            stars: str,
+            order: int = 0,
+            x1: int = 0,
+            x2: int = self.n_groups - 1,
+            capsize: float = capsize,
+            linewidth: float = linewidth,
+            col: str = col,
+        ) -> None:
+            label: str
+            vspace: float
             match (self.print_p_label, self.print_stars):
                 case (True, True):
-                    vspace = (capsize+0.06)*self.figure_scale_factor
-                    label = '{}\n{}'.format(p, stars)
+                    vspace = (capsize + 0.06) * self.figure_scale_factor
+                    label = "{}\n{}".format(p, stars)
                 case (True, False):
-                    vspace = (capsize+0.03)*self.figure_scale_factor
-                    label = '{}'.format(p)
+                    vspace = (capsize + 0.03) * self.figure_scale_factor
+                    label = "{}".format(p)
                 case (False, True):
-                    vspace = (capsize+0.03)*self.figure_scale_factor
-                    label = '{}'.format(stars)
+                    vspace = (capsize + 0.03) * self.figure_scale_factor
+                    label = "{}".format(stars)
+                case _:
+                    return
 
             if self.print_p_label or self.print_stars:
-                # Draw significance bar connecting x1 and x2 coords
-                y, h = ((1.05 + (order*vspace)) *
-                        self.y_max), capsize * self.y_max
+                y: float = (1.05 + order * vspace) * self.y_max
+                h: float = capsize * self.y_max
                 ax.plot([x1, x1, x2, x2], [y, y + h, y + h, y],
-                        lw=linewidth*self.figure_scale_factor, c=col)
+                        lw=linewidth * self.figure_scale_factor, c=col)
+                ax.text(
+                    (x1 + x2) * 0.5, y + h, label,
+                    ha="center", va="bottom", color=col,
+                    fontweight="bold", fontsize=8 * self.figure_scale_factor,
+                )
 
-                ax.text((x1 + x2) * 0.5, y + h, label,
-                        ha='center', va='bottom', color=col, fontweight='bold', fontsize=8*self.figure_scale_factor)
-
-        def draw_bar_from_posthoc_matrix(x1, x2, o):
-            draw_bar(
-                posthoc_matrix_printed[x1][x2], posthoc_matrix_stars[x1][x2], order=o, x1=x1, x2=x2)
-
+        def draw_bar_from_posthoc_matrix(x1: int, x2: int, o: int) -> None:
+            draw_bar(posthoc_matrix_printed[x1][x2], posthoc_matrix_stars[x1][x2],
+                     order=o, x1=x1, x2=x2)
         # bars_args= []
         # vshift=[0 for _ in self.data_groups]
 
@@ -672,10 +739,9 @@ class BaseStatPlot(Helpers):
         # for i in bars_args:
         #     draw_bar(i[0], i[1], i[2])
 
-        if (self.p is not None) or (self.posthoc_matrix != []):
+        if (self.p is not None) or self.posthoc_matrix:
             if not self.posthoc_matrix:
-                draw_bar(
-                    self.p_printed, self.stars_printed)
+                draw_bar(self.p_printed, self.stars_printed)
             elif len(self.posthoc_matrix) == 3:
                 draw_bar_from_posthoc_matrix(0, 1, 0)
                 draw_bar_from_posthoc_matrix(1, 2, 1)
@@ -684,124 +750,134 @@ class BaseStatPlot(Helpers):
                 draw_bar_from_posthoc_matrix(0, 1, 0)
                 draw_bar_from_posthoc_matrix(2, 3, 0)
                 draw_bar_from_posthoc_matrix(1, 2, 1)
-
                 draw_bar_from_posthoc_matrix(0, 2, 3)
                 draw_bar_from_posthoc_matrix(1, 3, 5)
-
                 draw_bar_from_posthoc_matrix(0, 3, 7)
-
             elif len(self.posthoc_matrix) == 5:
-
                 draw_bar_from_posthoc_matrix(0, 1, 0)
                 draw_bar_from_posthoc_matrix(2, 3, 0)
                 draw_bar_from_posthoc_matrix(1, 2, 1)
                 draw_bar_from_posthoc_matrix(3, 4, 1)
-
                 draw_bar_from_posthoc_matrix(0, 2, 4)
                 draw_bar_from_posthoc_matrix(2, 4, 5)
                 draw_bar_from_posthoc_matrix(1, 3, 8)
-
                 draw_bar_from_posthoc_matrix(0, 3, 11)
                 draw_bar_from_posthoc_matrix(1, 4, 14)
-
                 draw_bar_from_posthoc_matrix(0, 4, 17)
-
             else:
-                draw_bar(
-                    self.p_printed, self.stars_printed)
+                draw_bar(self.p_printed, self.stars_printed)
 
-    def axes_formatting(self, ax,
-                        linewidth=2):
-        # Remove all spines except left
+    def axes_formatting(
+        self,
+        ax: matplotlib.axes.Axes,
+        linewidth: float = 2,
+    ) -> None:
         for spine in ax.spines.values():
             spine.set_visible(False)
-        ax.spines['left'].set_visible(True)
+        ax.spines["left"].set_visible(True)
         ax.xaxis.set_visible(bool(self.x_label or self.print_x_labels))
         plt.tight_layout()
 
-        # Set x ticks and labels
         if self.print_x_labels:
             plt.subplots_adjust(bottom=0.11)
-            if self.groups_name != ['']:
+            if self.groups_name != [""]:
                 ax.set_xticks(range(self.n_groups))
-                ax.set_xticklabels([self.groups_name[i % len(self.groups_name)]
-                                    for i in range(self.n_groups)], fontweight='regular', fontsize=8*self.figure_scale_factor)
+                ax.set_xticklabels(
+                    [self.groups_name[i % len(self.groups_name)] for i in range(self.n_groups)],
+                    fontweight="regular",
+                    fontsize=8 * self.figure_scale_factor,
+                )
             else:
                 ax.set_xticks(range(self.n_groups))
-                ax.set_xticklabels(['Group {}'.format(i + 1)
-                                   for i in range(self.n_groups)], fontweight='regular', fontsize=8*self.figure_scale_factor)
+                ax.set_xticklabels(
+                    [f"Group {i + 1}" for i in range(self.n_groups)],
+                    fontweight="regular",
+                    fontsize=8 * self.figure_scale_factor,
+                )
         else:
             plt.subplots_adjust(bottom=0.08)
-            ax.tick_params(axis='x', which='both',
-                           labeltop=False, labelbottom=False)
+            ax.tick_params(axis="x", which="both", labeltop=False, labelbottom=False)
 
-        # Additional formatting
         for ytick in ax.get_yticklabels():
-            ytick.set_fontweight('bold')
-        ax.tick_params(width=linewidth*self.figure_scale_factor)
-        ax.xaxis.set_tick_params(labelsize=10*self.figure_scale_factor)
-        ax.yaxis.set_tick_params(labelsize=12*self.figure_scale_factor)
-        ax.spines['left'].set_linewidth(linewidth*self.figure_scale_factor)
-        ax.tick_params(axis='y', which='both',
-                       length=linewidth * 2*self.figure_scale_factor, width=linewidth*self.figure_scale_factor)
-        ax.tick_params(axis='x', which='both', length=0)
+            ytick.set_fontweight("bold")
+        ax.tick_params(width=linewidth * self.figure_scale_factor)
+        ax.xaxis.set_tick_params(labelsize=10 * self.figure_scale_factor)
+        ax.yaxis.set_tick_params(labelsize=12 * self.figure_scale_factor)
+        ax.spines["left"].set_linewidth(linewidth * self.figure_scale_factor)
+        ax.tick_params(
+            axis="y", which="both",
+            length=linewidth * 2 * self.figure_scale_factor,
+            width=linewidth * self.figure_scale_factor,
+        )
+        ax.tick_params(axis="x", which="both", length=0)
 
-    def add_titles_and_labels(self, fig, ax):
+    def add_titles_and_labels(
+        self,
+        fig: matplotlib.figure.Figure,
+        ax: matplotlib.axes.Axes,
+    ) -> None:
         if self.plot_title:
-            ax.set_title(self.plot_title, fontsize=12 *
-                         self.figure_scale_factor, fontweight='bold')
+            ax.set_title(self.plot_title, fontsize=12 * self.figure_scale_factor, fontweight="bold")
         if self.x_label:
-            ax.set_xlabel(self.x_label, fontsize=10 *
-                          self.figure_scale_factor, fontweight='bold')
+            ax.set_xlabel(self.x_label, fontsize=10 * self.figure_scale_factor, fontweight="bold")
         if self.y_label:
-            ax.set_ylabel(self.y_label, fontsize=10 *
-                          self.figure_scale_factor, fontweight='bold')
-        fig.text(0.95, 0.0,
-                 '{}{}\nn={}'.format(self.testname, (', ' + self.posthoc_name) if self.posthoc_name else '',
-                                     str(self.n)[1:-1] if not self.dependent else str(self.n[0])),
-                 ha='right', va='bottom', fontsize=8*self.figure_scale_factor, fontweight='regular')
+            ax.set_ylabel(self.y_label, fontsize=10 * self.figure_scale_factor, fontweight="bold")
+        fig.text(
+            0.95, 0.0,
+            "{}{}\nn={}".format(
+                self.testname,
+                (", " + self.posthoc_name) if self.posthoc_name else "",
+                str(self.n)[1:-1] if not self.dependent else str(self.n[0]),
+            ),
+            ha="right", va="bottom",
+            fontsize=8 * self.figure_scale_factor,
+            fontweight="regular",
+        )
 
-    def show(self):
+    def show(self) -> None:
         if not self.error:
             plt.show()
 
-    def save(self, path, format='png', dpi=150, transparent=True):
+    def save(
+        self,
+        path: str,
+        format: str = "png",
+        dpi: int = 150,
+        transparent: bool = True,
+    ) -> None:
         if not self.error:
-            plt.savefig(path,
-                        pad_inches=0.1*self.figure_scale_factor,
-                        format=format,
-                        dpi=dpi,
-                        transparent=transparent,
-                        )
+            plt.savefig(
+                path,
+                pad_inches=0.1 * self.figure_scale_factor,
+                format=format,
+                dpi=dpi,
+                transparent=transparent,
+            )
 
-    def close(self):
+    def close(self) -> None:
         if not self.error:
             plt.close()
 
-    def plot(self):
+    def plot(self) -> None:
+        """Abstract — each subclass must implement its own plot method."""
         if not self.error:
-            # Abstract method—each subclass must implement its own plot method
-            raise NotImplementedError(
-                "Implement the plot() method in the subclass")
+            raise NotImplementedError("Implement the plot() method in the subclass")
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Concrete plot classes
+# ─────────────────────────────────────────────────────────────────────────────
 
 class BarStatPlot(BaseStatPlot):
 
-    def plot(self, linewidth=1.8):
+    def plot(self, linewidth: float = 1.8) -> None:  # type: ignore[override]
         if not self.error:
-
             fig, ax = self.setup_figure()
-
             for x in range(len(self.data_groups)):
-
-                # Create a bar for given group.
                 self.add_barplot(ax, x, linewidth=linewidth)
-
-                # Overlay errbars, and markers.
                 self.add_median_marker(ax, x, linewidth=linewidth)
                 self.add_mean_marker(ax, x, linewidth=linewidth)
                 self.add_errorbar_sd(ax, x, linewidth=linewidth)
-
             self.add_swarm(ax)
             self.add_significance_bars(ax, linewidth)
             self.add_titles_and_labels(fig, ax)
@@ -821,35 +897,27 @@ class ViolinStatPlot(BaseStatPlot):
         https://seaborn.pydata.org/archive/0.11/generated/seaborn.violinplot.html
     '''
 
-    def plot(self, linewidth=1.8):
+    def plot(self, linewidth: float = 1.8) -> None:  # type: ignore[override]
         if not self.error:
             fig, ax = self.setup_figure()
-
             for x in range(len(self.data_groups)):
-
-                # Create a violin for given group.
                 self.add_violinplot(ax, x)
-
-                # Overlay errbars and markers.
                 self.add_median_marker(ax, x, linewidth=linewidth)
                 self.add_mean_marker(ax, x, linewidth=linewidth)
                 self.add_errorbar_sd(ax, x, linewidth=linewidth)
-
             self.add_swarm(ax)
             self.add_significance_bars(ax, linewidth)
             self.add_titles_and_labels(fig, ax)
             self.axes_formatting(ax, linewidth)
-
             xmin, xmax = ax.get_xlim()
             ax.set_xlim(xmin - 0.3, xmax + 0.3)
 
 
 class BoxStatPlot(BaseStatPlot):
 
-    def plot(self, linewidth=1.8):
+    def plot(self, linewidth: float = 1.8) -> None:  # type: ignore[override]
         if not self.error:
             fig, ax = self.setup_figure()
-
             self.add_boxplot(ax)
             self.add_swarm(ax)
             self.add_significance_bars(ax, linewidth)
@@ -859,44 +927,34 @@ class BoxStatPlot(BaseStatPlot):
 
 class ScatterStatPlot(BaseStatPlot):
 
-    def plot(self, linewidth=1.8):
+    def plot(self, linewidth: float = 1.8) -> None:  # type: ignore[override]
         if not self.error:
             fig, ax = self.setup_figure()
-
             for x in range(len(self.data_groups)):
-
-                # Overlay errbars, and markers.
                 self.add_median_marker(ax, x, linewidth=linewidth)
                 self.add_mean_marker(ax, x, linewidth=linewidth)
                 self.add_errorbar_sd(ax, x, linewidth=linewidth)
-
             self.add_scatter(ax)
             self.add_significance_bars(ax, linewidth)
             self.add_titles_and_labels(fig, ax)
             self.axes_formatting(ax, linewidth)
-
             xmin, xmax = ax.get_xlim()
             ax.set_xlim(xmin - 0.3, xmax + 0.3)
 
 
 class SwarmStatPlot(BaseStatPlot):
 
-    def plot(self, linewidth=1.8):
+    def plot(self, linewidth: float = 1.8) -> None:  # type: ignore[override]
         if not self.error:
             fig, ax = self.setup_figure()
-
             for x in range(len(self.data_groups)):
-
-                # Overlay errbars, and markers.
                 self.add_median_marker(ax, x, linewidth=linewidth)
                 self.add_mean_marker(ax, x, linewidth=linewidth)
                 self.add_errorbar_sd(ax, x, linewidth=linewidth)
-
             self.add_swarm(ax)
             self.add_significance_bars(ax, linewidth)
             self.add_titles_and_labels(fig, ax)
             self.axes_formatting(ax, linewidth)
-
             xmin, xmax = ax.get_xlim()
             ax.set_xlim(xmin - 0.3, xmax + 0.3)
 
@@ -912,23 +970,16 @@ class SwarmStatPlot_subgrouping_betta(BaseStatPlot):
     so the subgrouping list should have the same length as the total number of data points across all groups.
     '''
 
-
-    def plot(self, linewidth=1.8):
+    def plot(self, linewidth: float = 1.8) -> None:  # type: ignore[override]
         if not self.error:
             fig, ax = self.setup_figure()
-
             for x in range(len(self.data_groups)):
-
-                # Overlay errbars, and markers.
                 self.add_median_marker(ax, x, linewidth=linewidth)
                 self.add_mean_marker(ax, x, linewidth=linewidth)
                 self.add_errorbar_sd(ax, x, linewidth=linewidth)
-
-            self.add_swarm_with_alternate_colors(
-                ax, subgrouping=self.subgrouping_arrange)
+            self.add_swarm_with_alternate_colors(ax, subgrouping=self.subgrouping_arrange)
             self.add_significance_bars(ax, linewidth)
             self.add_titles_and_labels(fig, ax)
             self.axes_formatting(ax, linewidth)
-
             xmin, xmax = ax.get_xlim()
             ax.set_xlim(xmin - 0.3, xmax + 0.3)
