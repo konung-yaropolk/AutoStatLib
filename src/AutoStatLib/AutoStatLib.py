@@ -163,7 +163,7 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
         }
 
     # ------------------------------------------------------------------ #
-    # Internal orchestration                                               #
+    # Internal orchestration                                             #
     # ------------------------------------------------------------------ #
 
     def run_test(self, test: str = "auto") -> None:

@@ -44,8 +44,10 @@ class Helpers(StatAnalysisProtocol):
             return [item for item in processed_list if item is not None]
         else:
             try:
+                # Try to convert the item to float
                 return np.float64(data)  # type: ignore[return-value]
             except (ValueError, TypeError):
+                # If conversion fails, replace with None
                 self.warning_flag_non_numeric_data = True
                 return None  # type: ignore[return-value]
 
@@ -88,6 +90,7 @@ class Helpers(StatAnalysisProtocol):
                 for i in range(len(self.data))
             ],
             "subgrouping": self.subgrouping,
+            # actually returns list of lists of numpy dtypes of float64, next make it return regular floats:
             "Samples": self.data,
             "Posthoc_Tests_Name": self.posthoc_name if self.posthoc_name is not None else "",
             "Posthoc_Matrix": self.posthoc_matrix if self.posthoc_matrix else [],

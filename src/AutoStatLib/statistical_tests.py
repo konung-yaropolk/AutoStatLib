@@ -27,6 +27,14 @@ from statsmodels.stats.multicomp import pairwise_tukeyhsd
 # users may receive misleading results for one-tailed tests when the effect is in the
 # opposite direction.
 
+# Bug note:
+# One-tailed p-value: no directionality check
+# if self.tails == 1:
+#     p_value /= 2
+# Dividing a two-tailed p-value by 2 is only valid when the test statistic falls in the hypothesized direction. If the effect is in the opposite direction, the one-tailed p should be 1 - p_two_tailed/2. Without a alternative parameter exposed to the user, results for one-tailed tests where the effect direction is "wrong" will be misleading.
+# Recommendation: Either expose an alternative='less'/'greater' parameter and pass it to scipy.stats directly (which handles it correctly), or document that one-tailed results are only valid when the observed effect is in the expected direction.
+
+
 
 class StatisticalTests(StatAnalysisProtocol):
     """Statistical tests mixin."""
@@ -66,34 +74,34 @@ class StatisticalTests(StatAnalysisProtocol):
     def run_test_by_id(self, test_id: str) -> None:
         """Dispatch a test by its string ID, then store the results on self."""
         test_names_dict: dict[str, str] = {
-            "anova_1w_ordinary":    "Ordinary One-Way ANOVA",
-            "anova_1w_rm":          "Repeated Measures One-Way ANOVA",
-            "friedman":             "Friedman test",
-            "kruskal_wallis":       "Kruskal-Wallis test",
-            "mann_whitney":         "Mann-Whitney U test",
-            "t_test_independent":   "t-test for independent samples",
-            "t_test_paired":        "t-test for paired samples",
-            "t_test_single_sample": "Single-sample t-test",
-            "wilcoxon":             "Wilcoxon signed-rank test",
+            "anova_1w_ordinary":      "Ordinary One-Way ANOVA",
+            "anova_1w_rm":            "Repeated Measures One-Way ANOVA",
+            "friedman":               "Friedman test",
+            "kruskal_wallis":         "Kruskal-Wallis test",
+            "mann_whitney":           "Mann-Whitney U test",
+            "t_test_independent":     "t-test for independent samples",
+            "t_test_paired":          "t-test for paired samples",
+            "t_test_single_sample":   "Single-sample t-test",
+            "wilcoxon":               "Wilcoxon signed-rank test",
             "wilcoxon_single_sample": "Wilcoxon signed-rank test for single sample",
-            "none":                 "No statictical tests preformed",
+            "none":                   "No statictical tests preformed",
         }
 
         stat: Optional[np.float64]
         p_value: Optional[np.float64]
 
         match test_id:
-            case "anova_1w_ordinary":    stat, p_value = self.anova_1w_ordinary()
-            case "anova_1w_rm":          stat, p_value = self.anova_1w_rm()
-            case "friedman":             stat, p_value = self.friedman()
-            case "kruskal_wallis":       stat, p_value = self.kruskal_wallis()
-            case "mann_whitney":         stat, p_value = self.mann_whitney()
-            case "t_test_independent":   stat, p_value = self.t_test_independent()
-            case "t_test_paired":        stat, p_value = self.t_test_paired()
-            case "t_test_single_sample": stat, p_value = self.t_test_single_sample()
-            case "wilcoxon":             stat, p_value = self.wilcoxon()
+            case "anova_1w_ordinary":      stat, p_value = self.anova_1w_ordinary()
+            case "anova_1w_rm":            stat, p_value = self.anova_1w_rm()
+            case "friedman":               stat, p_value = self.friedman()
+            case "kruskal_wallis":         stat, p_value = self.kruskal_wallis()
+            case "mann_whitney":           stat, p_value = self.mann_whitney()
+            case "t_test_independent":     stat, p_value = self.t_test_independent()
+            case "t_test_paired":          stat, p_value = self.t_test_paired()
+            case "t_test_single_sample":   stat, p_value = self.t_test_single_sample()
+            case "wilcoxon":               stat, p_value = self.wilcoxon()
             case "wilcoxon_single_sample": stat, p_value = self.wilcoxon_single_sample()
-            case "none":                 stat, p_value = (None, None)
+            case "none":                   stat, p_value = (None, None)
 
         self.paired_test_applied: bool = test_id in self.test_ids_dependent
         self.test_name: str = test_names_dict[test_id]
@@ -102,17 +110,24 @@ class StatisticalTests(StatAnalysisProtocol):
         self.p_value: Optional[np.float64] = p_value
 
     # ------------------------------------------------------------------ #
-    # Individual test methods                                              #
-    # Each returns (test_statistic, p_value).                             #
+    # Individual test methods                                            #
+    # Each returns (test_statistic, p_value).                            #
     # ------------------------------------------------------------------ #
 
     def anova_1w_ordinary(self) -> tuple[np.float64, np.float64]:
         """One-way ANOVA with optional Tukey's post-hoc test."""
-        stat, p_value = f_oneway(*self.data)
-        # Non-directional test — one-tailed does not apply
+        stat, p_value = f_oneway(*self.data)        
+
+        # bad practice to silently rewrite users input, 
+        # but this is a non-directional test so one-tailed doesn't make sense        
         self.tails = 2
 
-        if self.posthoc:
+        # if self.tails == 1 and p_value > 0.5:
+        #     p_value /= 2
+        # if self.tails == 1:
+        #     p_value /= 2
+
+        if self.posthoc:  # and p_value < 0.05:
             data_flat = np.concatenate(self.data)
             self.posthoc_name = "Tukey`s posthoc"
             group_labels = np.concatenate(
@@ -126,11 +141,33 @@ class StatisticalTests(StatAnalysisProtocol):
 
     def anova_1w_rm(self) -> tuple[np.float64, np.float64]:
         """Repeated-measures one-way ANOVA."""
+        # Parameters:
+        # data: list of lists, where each sublist represents repeated measures for a subject
+
+        
         df = self.matrix_to_dataframe(self.data)
         res = AnovaRM(df, "Value", "Row", within=["Col"]).fit()
 
         stat: np.float64 = res.anova_table.iloc[0][0]
         p_value: np.float64 = res.anova_table.iloc[0][3]
+
+        # # --- Posthocs: paired t-tests ---
+        # wide = df.pivot(index='Row', columns='Col', values='Value')
+        # conds = wide.columns
+        # pairs = list(itertools.combinations(conds, 2))
+
+        # pvals, stats = [], []
+        # for a, b in pairs:
+        #     t, p = ttest_rel(wide[a], wide[b])
+        #     stats.append(t)
+        #     pvals.append(p)
+
+        # # Adjust p-values
+        # rej, p_corr, _, _ = multipletests(pvals, method='bonferroni')
+
+        # print(p_corr)
+
+
 
         self.tails = 2
         return stat, p_value
@@ -145,7 +182,8 @@ class StatisticalTests(StatAnalysisProtocol):
         """Kruskal-Wallis test with optional Dunn's post-hoc test."""
         stat, p_value = kruskal(*self.data)
 
-        if self.posthoc:
+        # Perform Dunn's multiple comparisons if Kruskal-Wallis is significant
+        if self.posthoc:  # and p_value < 0.05:
             self.posthoc_matrix = sp.posthoc_dunn(
                 self.data, p_adjust="bonferroni"
             ).values.tolist()
@@ -159,6 +197,12 @@ class StatisticalTests(StatAnalysisProtocol):
         stat, p_value = mannwhitneyu(self.data[0], self.data[1], alternative="two-sided")
         if self.tails == 1:
             p_value /= 2
+        # alternative method of one-tailed calculation
+        # gives the same result:
+        # stat, p_value = mannwhitneyu(
+        #     self.data[0], self.data[1], alternative='two-sided' if self.tails == 2 else 'less')
+        # if self.tails == 1 and p_value > 0.5:
+        #     p_value = 1-p_value
         return stat, p_value
 
     def t_test_independent(self) -> tuple[np.float64, np.float64]:

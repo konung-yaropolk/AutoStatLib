@@ -64,7 +64,10 @@ class TextFormatting(StatAnalysisProtocol):
                     i, ":", " " * shift,
                     "{0}x{0} matrix".format(len(self.results[i])) if self.results[i] else "N/A",
                 )
-            elif i in ("Samples", "Posthoc_Matrix_bool", "Posthoc_Matrix_printed", "Posthoc_Matrix_stars"):
+            elif i in ("Samples",
+                       "Posthoc_Matrix_bool",
+                       "Posthoc_Matrix_printed",
+                       "Posthoc_Matrix_stars"):
                 pass
             else:
                 self.log(i, ":", " " * shift, self.results[i])
