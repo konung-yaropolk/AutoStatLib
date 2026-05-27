@@ -490,6 +490,7 @@ class BaseStatPlot(Helpers):
             marker=marker,
             linewidth=linewidth * self.figure_scale_factor * size_scale,
             zorder=zorder,
+            warn_thresh = 1, # threshold for warning about too many points; set to 0 to always warn, or 1 to never warn
         )
 
         if self.dependent:

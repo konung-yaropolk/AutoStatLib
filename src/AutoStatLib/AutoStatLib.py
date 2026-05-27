@@ -216,7 +216,7 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
             ), "Wrong test id choosen, ensure you called correct function"
             assert all(
                 len(group) >= 4 for group in self.data
-            ), "Each group must contain at least four values"
+            ), "Each group must be at least n=4 for the valid statistics, so test was skipped"
             assert not (
                 test in self.test_ids_dependent
                 and not all(len(lst) == len(self.data[0]) for lst in self.data)
