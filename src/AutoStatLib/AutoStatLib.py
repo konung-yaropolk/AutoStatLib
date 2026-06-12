@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from itertools import cycle, islice
 from typing import Optional, Union
 
 import numpy as np
@@ -69,7 +70,7 @@ class StatisticalAnalysis(StatisticalTests, NormalityTests, TextFormatting, Help
         self.raise_errors: bool = raise_errors
         self.n_groups: int = len(self.groups_list)
         self.groups_name: list[str] = (
-            [groups_name[i % len(groups_name)] for i in range(self.n_groups)]
+            list(islice(cycle(groups_name), self.n_groups))
             if groups_name and groups_name != [""]
             else [f"Group {i + 1}" for i in range(self.n_groups)]
         )

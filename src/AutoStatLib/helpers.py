@@ -11,17 +11,18 @@ import pandas as pd
 class Helpers(StatAnalysisProtocol):
 
     def matrix_to_dataframe(self, matrix: list[list[float]]) -> pd.DataFrame:
-        data: list[float] = []
-        cols: list[int] = []
-        rows: list[int] = []
-
-        for i, row in enumerate(matrix):
-            for j, value in enumerate(row):
-                data.append(value)
-                cols.append(i)
-                rows.append(j)
-
-        return pd.DataFrame({"Row": rows, "Col": cols, "Value": data})
+        # Convert once to a 2-D float array, then use NumPy meshgrid to build
+        # the row/col index arrays without any Python-level loop.
+        arr = np.array(matrix, dtype=float)          # (n_subjects, n_conditions)
+        n_rows, n_cols = arr.shape
+        row_idx, col_idx = np.meshgrid(
+            np.arange(n_rows), np.arange(n_cols), indexing="ij"
+        )
+        return pd.DataFrame({
+            "Row":   row_idx.ravel(),
+            "Col":   col_idx.ravel(),
+            "Value": arr.ravel(),
+        })
 
     def list_to_matrix(self, values: list[float], n: int) -> list[list[float]]:
         i = 0
@@ -65,6 +66,32 @@ class Helpers(StatAnalysisProtocol):
             self.make_stars_printed(self.stars_int) if self.successfull else ""
         )
 
+        # --- Compute per-group descriptive stats in a single pass ----------
+        # Convert each group once; reuse the array for mean, median, std, sem.
+        # This also avoids calling np.std twice (once for SD, once for SE).
+        groups_arr    = [np.asarray(g, dtype=float) for g in self.data]
+        groups_n      = [len(a)                         for a in groups_arr]
+        groups_mean   = [float(a.mean())                for a in groups_arr]
+        groups_median = [float(np.median(a))            for a in groups_arr]
+        groups_sd     = [float(a.std(ddof=1))           for a in groups_arr]
+        groups_se     = [sd / np.sqrt(n) for sd, n in zip(groups_sd, groups_n)]
+
+        # --- Posthoc matrix representations — one pass over the matrix -----
+        # Previously built as three separate nested list comprehensions;
+        # now all three are filled in a single traversal.
+        if self.posthoc_matrix:
+            pm_bool:    list[list] = []
+            pm_printed: list[list] = []
+            pm_stars:   list[list] = []
+            for row in self.posthoc_matrix:
+                pm_bool.append([bool(e) for e in row])
+                pm_printed.append([self.make_p_value_printed(e) for e in row])
+                pm_stars.append(
+                    [self.make_stars_printed(self.make_stars(e)) for e in row]
+                )
+        else:
+            pm_bool = pm_printed = pm_stars = []
+
         return {
             "p_value": (
                 self.make_p_value_printed(self.p_value.item())
@@ -90,52 +117,22 @@ class Helpers(StatAnalysisProtocol):
             "Stars": self.stars_int,
             "Warnings": self.warnings,
             "Successfull_Test": (self.successfull and not self.error),
-            "Groups_Name": self.groups_name,
-            "Groups_N": [len(self.data[i]) for i in range(len(self.data))],
-            "Groups_Median": [
-                np.median(self.data[i]).item() for i in range(len(self.data))
-            ],
-            "Groups_Mean": [
-                np.mean(self.data[i]).item() for i in range(len(self.data))
-            ],
-            "Groups_SD": [
-                np.std(self.data[i], ddof=1).item() for i in range(len(self.data))
-            ],
-            "Groups_SE": [
-                np.std(self.data[i], ddof=1).item() / np.sqrt(len(self.data[i]))
-                for i in range(len(self.data))
-            ],
+            "Groups_Name":   self.groups_name,
+            "Groups_N":      groups_n,
+            "Groups_Median": groups_median,
+            "Groups_Mean":   groups_mean,
+            "Groups_SD":     groups_sd,
+            "Groups_SE":     groups_se,
             "subgrouping": self.subgrouping,
             # actually returns list of lists of numpy dtypes of float64, next make it return regular floats:
             "Samples": self.data,
             "Posthoc_Tests_Name": (
                 self.posthoc_name if self.posthoc_name is not None else ""
             ),
-            "Posthoc_Matrix": self.posthoc_matrix if self.posthoc_matrix else [],
-            "Posthoc_Matrix_bool": (
-                [[bool(element) for element in row] for row in self.posthoc_matrix]
-                if self.posthoc_matrix
-                else []
-            ),
-            "Posthoc_Matrix_printed": (
-                [
-                    [self.make_p_value_printed(element) for element in row]
-                    for row in self.posthoc_matrix
-                ]
-                if self.posthoc_matrix
-                else []
-            ),
-            "Posthoc_Matrix_stars": (
-                [
-                    [
-                        self.make_stars_printed(self.make_stars(element))
-                        for element in row
-                    ]
-                    for row in self.posthoc_matrix
-                ]
-                if self.posthoc_matrix
-                else []
-            ),
+            "Posthoc_Matrix":         self.posthoc_matrix if self.posthoc_matrix else [],
+            "Posthoc_Matrix_bool":    pm_bool,
+            "Posthoc_Matrix_printed": pm_printed,
+            "Posthoc_Matrix_stars":   pm_stars,
         }
 
     def log(self, *args: object, **kwargs: object) -> None:

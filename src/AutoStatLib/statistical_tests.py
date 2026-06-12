@@ -241,8 +241,8 @@ class StatisticalTests(StatAnalysisProtocol):
         if self.popmean is None:
             self.popmean = 0
             self.AddWarning("no_pop_mean_set")
-        data: list[float] = [x - self.popmean for x in self.data[0]]
-        stat, p_value = wilcoxon(data)
+        arr = np.asarray(self.data[0], dtype=float) - self.popmean
+        stat, p_value = wilcoxon(arr)
         if self.tails == 1:
             p_value /= 2
         return stat, p_value

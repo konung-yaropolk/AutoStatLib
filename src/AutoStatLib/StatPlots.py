@@ -20,12 +20,8 @@ class Helpers:
         colors: list[str | tuple],
         alpha: float = 0.35,
     ) -> list[tuple[float, float, float, float]]:
-        rgba_colors: list[tuple[float, float, float, float]] = []
-        for col in colors:
-            rgba = list(mcolors.to_rgba(col))
-            rgba[3] = alpha
-            rgba_colors.append((rgba[0], rgba[1], rgba[2], rgba[3]))
-        return rgba_colors
+        # mcolors.to_rgba returns a 4-tuple; replace only the alpha channel.
+        return [(*mcolors.to_rgba(c)[:3], alpha) for c in colors]
 
     def get_colors(
         self,
@@ -166,25 +162,33 @@ class BaseStatPlot(Helpers):
             print("AutoStatLib.StatPlots Error :", error)
             return
 
-        #  sd sem mean and median calculation if they are not provided
-        self.mean: list[float] = [
-            np.mean(self.data_groups[i]).item() for i in range(self.n_groups)
-        ]
-        self.median: list[float] = [
-            np.median(self.data_groups[i]).item() for i in range(self.n_groups)
-        ]
-        self.sd: list[float] = [
-            np.std(self.data_groups[i], ddof=1).item() for i in range(self.n_groups)
-        ]
-        self.sem: list[float] = [
-            np.std(self.data_groups[i], ddof=1).item()
-            / np.sqrt(len(self.data_groups[i]))
-            for i in range(self.n_groups)
-        ]
-
-        self.n: list[int] = [len(i) for i in self.data_groups]
+        # sd sem mean and median calculation if they are not provided.
+        # Convert each group to a float array once; reuse for all four stats.
+        # This avoids calling np.std twice per group (old code recomputed it
+        # from scratch for sem after already computing it for sd).
+        _arrs       = [np.asarray(g, dtype=float) for g in self.data_groups]
+        self.n      = [len(a) for a in _arrs]
+        self.mean   = [float(a.mean())      for a in _arrs]
+        self.median = [float(np.median(a))  for a in _arrs]
+        self.sd     = [float(a.std(ddof=1)) for a in _arrs]
+        self.sem    = [sd / np.sqrt(n) for sd, n in zip(self.sd, self.n)]
         self.p_printed: str = self.make_p_value_printed(self.p)
         self.stars_printed: str = self.make_stars_printed(self.make_stars(self.p))
+
+        # Pre-compute posthoc matrix string representations once here so that
+        # add_significance_bars() doesn't rebuild them on every call.
+        if self.posthoc_matrix:
+            self._posthoc_printed: list[list[str]] = [
+                [self.make_p_value_printed(e) for e in row]
+                for row in self.posthoc_matrix
+            ]
+            self._posthoc_stars: list[list[str]] = [
+                [self.make_stars_printed(self.make_stars(e)) for e in row]
+                for row in self.posthoc_matrix
+            ]
+        else:
+            self._posthoc_printed = []
+            self._posthoc_stars   = []
 
         self.groups_name: list[str] = Groups_Name if Groups_Name is not None else [""]
         self.subgrouping: list = subgrouping if subgrouping else [0]
@@ -430,10 +434,12 @@ class BaseStatPlot(Helpers):
         linewidth: float = 1.2,
         zorder: int = 2,
     ) -> None:
-        spread_pool: list[tuple] = []
-        for i, data in enumerate(self.data_groups):
-            spread = tuple(random.uniform(-0.10, 0.10) for _ in data)
-            spread_pool.append(tuple(i + s for s in spread))
+        # Generate all jitter offsets with NumPy at once instead of Python loops.
+        rng = np.random.default_rng()
+        spread_pool: list[np.ndarray] = [
+            i + rng.uniform(-0.10, 0.10, size=len(g))
+            for i, g in enumerate(self.data_groups)
+        ]
 
         for i, data in enumerate(self.transpose(self.data_groups)):
             ax.plot(
@@ -691,22 +697,10 @@ class BaseStatPlot(Helpers):
         col: str = "k",
     ) -> None:
 
-        posthoc_matrix_printed: list[list[str]] = (
-            [
-                [self.make_p_value_printed(element) for element in row]
-                for row in self.posthoc_matrix
-            ]
-            if self.posthoc_matrix
-            else []
-        )
-        posthoc_matrix_stars: list[list[str]] = (
-            [
-                [self.make_stars_printed(self.make_stars(element)) for element in row]
-                for row in self.posthoc_matrix
-            ]
-            if self.posthoc_matrix
-            else []
-        )
+        # Use the pre-computed representations cached in __init__ rather than
+        # rebuilding them on every call to add_significance_bars().
+        posthoc_matrix_printed: list[list[str]] = self._posthoc_printed
+        posthoc_matrix_stars:   list[list[str]] = self._posthoc_stars
 
         def draw_bar(
             p: str,

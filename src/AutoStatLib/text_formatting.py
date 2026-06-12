@@ -8,27 +8,29 @@ from typing import Optional
 class TextFormatting(StatAnalysisProtocol):
     """Text formatting mixin."""
 
-    def autospace(
-        self, elements_list: list[str], space: int, delimiter: str = " "
-    ) -> str:
-        output = ""
-        for i, element in enumerate(elements_list):
-            if i == len(elements_list):
-                output += element
-            else:
-                output += element + (space - len(element)) * delimiter
-        return output
+    def _fmt_row(self, elements: list[str], width: int, fill: str = " ") -> str:
+        """
+        Format a list of strings into a fixed-width columnar row.
+
+        Each element is left-justified to ``width`` characters using ``fill``
+        as the pad character.  The last element is appended without trailing
+        padding (matches terminal/log output intent).
+
+        Replaces the hand-rolled ``autospace()`` loop with Python's built-in
+        ``str.ljust`` and ``str.join``.
+        """
+        if not elements:
+            return ""
+        # All but the last element are padded to `width`; last is bare.
+        return "".join(e.ljust(width, fill) for e in elements[:-1]) + elements[-1]
 
     def print_groups(self, space: int = 24, max_length: int = 15) -> None:
         self.log("")
         data: list[list[float]] = self.data
-        num_groups: int = len(data)
         group_longest: int = max(len(row) for row in data)
 
-        header: list[str] = self.groups_name
-        line: list[str] = ["" * 7]
-        self.log(self.autospace(header, space))
-        self.log(self.autospace(line, space))
+        self.log(self._fmt_row(self.groups_name, space))
+        self.log(self._fmt_row(["" * 7], space))
 
         for i in range(group_longest):
             row_values: list[str] = []
@@ -51,7 +53,7 @@ class TextFormatting(StatAnalysisProtocol):
                         row_values.append("")
             if all_values_empty:
                 break
-            self.log(self.autospace(row_values, space))
+            self.log(self._fmt_row(row_values, space))
 
     def print_results(self) -> None:
         self.log("\n\nResults: \n")
