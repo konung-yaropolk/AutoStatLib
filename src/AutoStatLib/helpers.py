@@ -74,7 +74,7 @@ class Helpers(StatAnalysisProtocol):
         groups_mean   = [float(a.mean())                for a in groups_arr]
         groups_median = [float(np.median(a))            for a in groups_arr]
         groups_sd     = [float(a.std(ddof=1))           for a in groups_arr]
-        groups_se     = [sd / np.sqrt(n) for sd, n in zip(groups_sd, groups_n)]
+        groups_se     = [sd / np.sqrt(n).item() for sd, n in zip(groups_sd, groups_n)]
 
         # --- Posthoc matrix representations — one pass over the matrix -----
         # Previously built as three separate nested list comprehensions;
