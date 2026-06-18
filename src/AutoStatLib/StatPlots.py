@@ -1,7 +1,5 @@
 from __future__ import annotations
-
-from typing import Optional
-import random
+from typing import Literal, Optional
 
 import matplotlib.axes
 import matplotlib.colors as mcolors
@@ -9,7 +7,6 @@ import matplotlib.colors as color
 import matplotlib.figure
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 import seaborn as sns
 
 
@@ -246,7 +243,7 @@ class BaseStatPlot(Helpers):
         x: int,
         linewidth: float = 2,
         widths: float = 0.85,
-        orientation: str = "vertical",
+        orientation: Literal["vertical", "horizontal"] = "vertical",
         showmeans: bool = False,
         showmedians: bool = False,
         showextrema: bool = False,
@@ -284,7 +281,7 @@ class BaseStatPlot(Helpers):
         flierEdgeColor: Optional[str] = None,
         flierLineWidth: float = 2,
         flierLineStyle: Optional[str] = None,
-        orientation: str = "vertical",
+        orientation: Literal["vertical", "horizontal"] = "vertical",
         # whiskers when one float is tukeys parameter, when a pair of percentages,
         # defines the percentiles where the whiskers should be If a float,
         # the lower whisker is at the lowest datum above Q1 - whis*(Q3-Q1),
