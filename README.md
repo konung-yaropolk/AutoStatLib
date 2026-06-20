@@ -21,8 +21,7 @@ AutoStatLib picks the right statistical test for your data and runs it — autom
   - [5. Warnings](#5-warnings)
   - [6. Text summary](#6-text-summary)
 - [Plotting results](#plotting-results)
-- [Alpha dev status](#alpha-dev-status)
-- [License](#license)
+
 
 ---
 
