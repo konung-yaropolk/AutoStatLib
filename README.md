@@ -44,13 +44,24 @@ import AutoStatLib
 
 # two independent, normally-distributed groups
 group_A = list(np.random.normal(loc=4.0, scale=1.0, size=30))
-group_B = list(np.random.normal(loc=4.5, scale=1.0, size=30))
+group_B = list(np.random.normal(loc=6.5, scale=2.0, size=30))
 
-analysis = AutoStatLib.StatisticalAnalysis([group_A, group_B])
-analysis.RunAuto()  # checks normality, picks t-test or Mann-Whitney automatically
+analysis = AutoStatLib.StatisticalAnalysis([group_A, group_B],
+                                            groups_name=['Control', 'Drug'],
+                                            paired=False, 
+                                            verbose=False,
+                                            posthoc=True)
 
+analysis.RunAuto()
 result = analysis.GetResult()
-print(result['Test_Name'], result['p_value'], result['Significance(p<0.05)'])
+
+print(f"{result['Test_Name']} \np-value: {result['p_value']} \nSignificance: {result['Significance(p<0.05)']}")
+
+fig = AutoStatLib.StatPlots.BarStatPlot(result['Samples'], **result)
+fig.plot()
+fig.show()
+fig.save('result.png')
+
 ```
 
 More runnable examples live in the [`/demo`](./demo) directory of this repo.
@@ -73,8 +84,7 @@ analysis = AutoStatLib.StatisticalAnalysis(
     groups_list,
     paired=False,
     tails=2,
-    popmean=None,
-    posthoc=False,
+    posthoc=True,
     verbose=True,
     raise_errors=False,
     groups_name=None,
@@ -280,9 +290,9 @@ Output methods on every plot object: `.plot()` to render, `.show()` to display, 
 
 ---
 
-## Alpha dev status.
+## TODO
 
-### TODO:
+The project is in alpha dev status. Here is much work to do:
 
 -- Anova: posthocs  
 -- Anova: add 2-way anova and 3-way anova  
