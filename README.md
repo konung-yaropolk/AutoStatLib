@@ -175,26 +175,26 @@ Full key reference:
 
 ```python
 {
-    'p_value':                      str,                # human-formatted, e.g. "p=0.03" or "p<0.0001"
-    'p_value_exact':                float,              # raw numeric p-value
+    'p_value':                      str,                 # human-formatted, e.g. "p=0.03" or "p<0.0001"
+    'p_value_exact':                float,               # raw numeric p-value
     'Significance(p<0.05)':         bool,
-    'Stars':                        int,                # 0-4, number of significance stars
-    'Stars_Printed':                str,                # 'ns', '*', '**', '***', '****'
-    'Test_Name':                    str,                # e.g. "t-test for independent samples"
+    'Stars':                        int,                 # 0-4, number of significance stars
+    'Stars_Printed':                str,                 # 'ns', '*', '**', '***', '****'
+    'Test_Name':                    str,                 # e.g. "t-test for independent samples"
     'Groups_Compared':              int,
-    'Population_Mean':              float | str,        # value of `popmean`, or 'N/A' for multi-group tests
+    'Population_Mean':              float | str,         # value of `popmean`, or 'N/A' for multi-group tests
     'Data_Normaly_Distributed':     bool,
     'Parametric_Test_Applied':      bool,
     'Paired_Test_Applied':          bool,
-    'Tails':                        int,                # 1 or 2, echoes the input
+    'Tails':                        int,                 # 1 or 2, echoes the input
 
     'Groups_Name':                  list[str],
     'Groups_N':                     list[int],
     'Groups_Mean':                  list[float],
     'Groups_Median':                list[float],
-    'Groups_SD':                    list[float],        # sample SD, ddof=1
-    'Groups_SE':                    list[float],        # standard error of the mean
-    'Samples':                      list[list[float]],  # your cleaned input data, by group
+    'Groups_SD':                    list[float],         # sample SD, ddof=1
+    'Groups_SE':                    list[float],         # standard error of the mean
+    'Samples':                      list[list[float]],   # your cleaned input data, by group
 
     'Posthoc_Tests_Name':           str,                 # '' if posthoc=False
     'Posthoc_Matrix':               list[list[float]],   # pairwise p-values, [] if posthoc=False
