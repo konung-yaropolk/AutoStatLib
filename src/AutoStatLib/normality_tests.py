@@ -205,22 +205,30 @@ class NormalityTests(StatAnalysisProtocol):
             )
             result = anderson(data, dist="norm", method=mc_method)
             return float(result.statistic), float(result.pvalue)
+        
+        if method == "interpolate":
+            result = anderson(data, dist="norm", method="interpolate")
+            return float(result.statistic), float(result.pvalue)
 
-        n: int = len(data)
-        ad: float = float(anderson(data, dist="norm", method="interpolate").statistic)
+        # n: int = len(data)
+        # ad: float = float(anderson(data, dist="norm", method="interpolate").statistic)
 
-        # Adjust statistic for small sample sizes, then map to a
-        # continuous p-value (Jantschi & Bolboaca, 2018).
-        s: float = ad * (1 + 0.75 / n + 2.25 / (n**2))
+        # # Adjust statistic for small sample sizes, then map to a
+        # # continuous p-value (Jantschi & Bolboaca, 2018).
+        # s: float = ad * (1 + 0.75 / n + 2.25 / (n**2))
 
-        p: float
-        if s >= 0.6:
-            p = np.e ** (1.2937 - 5.709 * s + 0.0186 * s**2)
-        elif s > 0.34:
-            p = np.e ** (0.9177 - 4.279 * s - 1.38 * s**2)
-        elif s > 0.2:
-            p = 1 - np.e ** (-8.318 + 42.796 * s - 59.938 * s**2)
-        else:
-            p = 1 - np.e ** (-13.436 + 101.14 * s - 223.73 * s**2)
+        # try:
+        #     p: float
+        #     if s >= 0.6:
+        #         p = np.e ** (1.2937 - 5.709 * s + 0.0186 * s**2)
+        #     elif s > 0.34:
+        #         p = np.e ** (0.9177 - 4.279 * s - 1.38 * s**2)
+        #     elif s > 0.2:
+        #         p = 1 - np.e ** (-8.318 + 42.796 * s - 59.938 * s**2)
+        #     else:
+        #         p = 1 - np.e ** (-13.436 + 101.14 * s - 223.73 * s**2)
+        # # catch rear case of overflow when p is too small
+        # except Exception(OverflowError):
+        #     p = 5e-324
 
-        return ad, p
+        # return ad, p
