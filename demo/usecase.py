@@ -61,7 +61,7 @@ analysis.RunAuto()
 # %%# Get the results dictionary for future processing
 results = analysis.GetResult()
 plot = AutoStatLib.StatPlots.SwarmStatPlot_subgrouping_betta(
-    results['Samples'], **results)
+    results['Samples'], plot_title="My Test Plot", **results)
 # plot = AutoStatLib.StatPlots.SwarmStatPlot(
 #     results['Samples'], **results)
 plot.plot()

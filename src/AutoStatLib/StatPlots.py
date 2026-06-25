@@ -795,6 +795,12 @@ class BaseStatPlot(Helpers):
         ax: matplotlib.axes.Axes,
         linewidth: float = 2,
     ) -> None:
+        
+        # Add a 3% buffer to the y-axis to fit title and p-value
+        ymin, ymax = plt.ylim()
+        buffer = (ymax - ymin) * 0.03
+        plt.ylim(ymin, ymax + buffer)
+
         for spine in ax.spines.values():
             spine.set_visible(False)
         ax.spines["left"].set_visible(True)
@@ -846,7 +852,7 @@ class BaseStatPlot(Helpers):
         if self.plot_title:
             ax.set_title(
                 self.plot_title,
-                fontsize=12 * self.figure_scale_factor,
+                fontsize=10 * self.figure_scale_factor,
                 fontweight="bold",
             )
         if self.x_label:
