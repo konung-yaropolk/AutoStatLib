@@ -21,6 +21,8 @@ from AutoStatLib.StatPlots import (
     BarStatPlot,
     BoxStatPlot,
     Helpers,
+    HoneycombStatPlot,
+    OVERLAY_LAYOUTS,
     ScatterStatPlot,
     SwarmStatPlot,
     SwarmStatPlot_subgrouping_betta,
@@ -33,6 +35,7 @@ ALL_PLOT_CLASSES = [
     BoxStatPlot,
     ScatterStatPlot,
     SwarmStatPlot,
+    HoneycombStatPlot,
 ]
 
 
@@ -605,7 +608,177 @@ class TestSwarmSubgrouping:
 
 
 # ─────────────────────────────────────────────
-# 10. Large groups & edge values
+# 10. Honeycomb overlay
+# ─────────────────────────────────────────────
+
+# Edge normals of a pointy-top hexagon (the 'h' marker).
+_HEX_NORMALS = np.array([[np.cos(a), np.sin(a)] for a in np.radians([0, 60, 120])])
+
+
+def _draw_honeycomb(data, figsize=None, **kwargs):
+    """Plot a honeycomb overlay, render it and return (plot, ax, layout, hexes)."""
+    p = HoneycombStatPlot(data, **kwargs)
+    fig, ax = p.setup_figure()
+    if figsize is not None:
+        fig.set_size_inches(figsize)
+    layout = p.add_honeycomb(ax)
+    fig.canvas.draw()
+    return p, ax, layout, layout.hexes
+
+
+def _hexagons_overlap(centers_px, radius_px):
+    """
+    Exact overlap test for equal, equally oriented regular hexagons
+    (separating axis theorem): two of them are disjoint iff their centre
+    distance projected on one of the 3 edge normals is >= 2 * inradius.
+    Touching is allowed (that is how a honeycomb tiles).
+    """
+    d = centers_px[:, None, :] - centers_px[None, :, :]
+    proj = np.abs(d @ _HEX_NORMALS.T).max(axis=-1)
+    np.fill_diagonal(proj, np.inf)
+    return bool((proj < np.sqrt(3) * radius_px * (1 - 1e-6)).any())
+
+
+def _layout_px(ax, layout):
+    centers = ax.transData.transform(layout.hexes.get_offsets())
+    radius = layout.radius_pt * ax.figure.dpi / 72
+    return centers, radius
+
+
+class TestHoneycomb:
+
+    @pytest.mark.parametrize("data", [
+        [list(np.random.default_rng(0).normal(0, 1, 200)),
+         list(np.random.default_rng(1).normal(1, 1, 150))],
+        [[0.0] * 40 + list(np.random.default_rng(2).gamma(1, 0.3, 40)),
+         list(np.random.default_rng(3).gamma(1, 0.5, 60))],
+        [[1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 5]] * 3,
+        [list(np.random.default_rng(4).lognormal(0, 0.5, 600))],
+    ])
+    def test_hexagons_never_overlap(self, data):
+        _, ax, layout, _ = _draw_honeycomb(data)
+        centers, radius = _layout_px(ax, layout)
+        assert len(centers) == sum(len(g) for g in data)
+        assert not _hexagons_overlap(centers, radius)
+
+    def test_standard_size_when_dots_fit(self, data2):
+        _, _, layout, _ = _draw_honeycomb(data2)
+        assert layout.radius_pt == pytest.approx(4.0)  # markersize 8 / 2
+
+    def test_standard_size_follows_scale_factor(self, data2):
+        _, _, layout, _ = _draw_honeycomb(data2, figure_scale_factor=1.5)
+        assert layout.radius_pt == pytest.approx(6.0)
+
+    def test_size_shrinks_when_crowded(self):
+        _, ax, layout, _ = _draw_honeycomb([[5.0] * 200, [5.0] * 10])
+        assert layout.radius_pt < 4.0
+        # the 200 tied values form one row that still fits inside max_width
+        centers, radius = _layout_px(ax, layout)
+        half_px = ax.transData.transform([[0.4, 5.0]])[0, 0] - ax.transData.transform([[0.0, 5.0]])[0, 0]
+        x0 = ax.transData.transform([[0.0, 5.0]])[0, 0]
+        group0 = centers[:200, 0]
+        assert np.abs(group0 - x0).max() + np.sqrt(3) / 2 * radius <= half_px * (1 + 1e-6)
+        assert not _hexagons_overlap(centers, radius)
+
+    def test_size_is_shared_by_all_groups(self):
+        _, _, layout, hexes = _draw_honeycomb([[5.0] * 200, [1.0, 2.0, 3.0]])
+        assert len(hexes.get_sizes()) == 1
+
+    def test_dots_stay_close_to_their_values(self):
+        rng = np.random.default_rng(5)
+        data = [list(rng.normal(0, 1, 300)), list(rng.normal(2, 1, 300))]
+        _, ax, layout, _ = _draw_honeycomb(data)
+        centers, radius = _layout_px(ax, layout)
+        true_px = ax.transData.transform(
+            np.column_stack([np.zeros(600), np.concatenate(data)])
+        )[:, 1]
+        assert np.abs(centers[:, 1] - true_px).max() <= 0.75 * radius + 1e-6
+
+    def test_discrete_levels_drawn_exactly(self):
+        data = [[1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 5]] * 2
+        _, _, _, hexes = _draw_honeycomb(data)
+        y = hexes.get_offsets()[:, 1]
+        assert np.allclose(y, np.concatenate(data))
+
+    def test_dots_stay_in_their_group(self, data3):
+        _, _, _, hexes = _draw_honeycomb(data3)
+        x = hexes.get_offsets()[:, 0]
+        groups = np.repeat(np.arange(3), 20)
+        assert np.all(np.abs(x - groups) <= 0.4)
+
+    def test_layout_follows_figure_resize(self):
+        rng = np.random.default_rng(6)
+        data = [list(rng.normal(0, 1, 400))]
+        _, ax, layout, _ = _draw_honeycomb(data, figsize=(1.5, 4))
+        small = layout.radius_pt
+        ax.figure.set_size_inches(6, 4)
+        ax.figure.canvas.draw()
+        assert layout.radius_pt > small
+        assert not _hexagons_overlap(*_layout_px(ax, layout))
+
+    def test_size_independent_of_save_dpi(self, data2):
+        p, ax, layout, _ = _draw_honeycomb([[5.0] * 100, [1.0]])
+        r_screen = layout.radius_pt
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
+            path = f.name
+        try:
+            p.save(path, dpi=300)
+            assert layout.radius_pt == pytest.approx(r_screen, rel=1e-2)
+        finally:
+            os.unlink(path)
+
+    def test_paired_lines_connect_hexagons(self, data2):
+        _, _, layout, hexes = _draw_honeycomb(data2, Paired_Samples=True)
+        assert layout.lines is not None
+        segments = layout.lines.get_segments()
+        offsets = hexes.get_offsets()
+        assert len(segments) == 20
+        for j, seg in enumerate(segments):
+            assert np.allclose(seg[0], offsets[j])
+            assert np.allclose(seg[1], offsets[20 + j])
+
+    def test_no_lines_when_unpaired(self, data2):
+        _, _, layout, _ = _draw_honeycomb(data2)
+        assert layout.lines is None
+
+    def test_nan_values_are_skipped(self):
+        _, ax, layout, hexes = _draw_honeycomb([[1.0, np.nan, 2.0], [3.0, 4.0]])
+        assert len(hexes.get_offsets()) == 4
+        assert np.all(np.isfinite(hexes.get_offsets()))
+
+    @pytest.mark.parametrize("PlotClass", ALL_PLOT_CLASSES)
+    def test_overlay_option_on_every_plot(self, PlotClass, data2):
+        p = PlotClass(data2, p_value_exact=0.03, overlay="honeycomb")
+        p.plot()
+        plt.gcf().canvas.draw()
+        hexes = [c for c in plt.gca().collections
+                 if len(c.get_offsets()) == 40]
+        assert hexes, "honeycomb dots not drawn"
+
+    def test_overlay_values(self):
+        assert set(OVERLAY_LAYOUTS) == {"swarm", "honeycomb", "scatter"}
+
+    def test_invalid_overlay_raises(self, data2):
+        with pytest.raises(ValueError):
+            BarStatPlot(data2, overlay="hexbin")
+
+    def test_honeycomb_class_uses_honeycomb_by_default(self, data2, monkeypatch):
+        called = []
+        monkeypatch.setattr(HoneycombStatPlot, "add_honeycomb",
+                            lambda self, ax, **kw: called.append(True))
+        HoneycombStatPlot(data2).plot()
+        assert called
+
+    def test_honeycomb_class_overlay_can_be_overridden(self, data2, monkeypatch):
+        called = []
+        monkeypatch.setattr(HoneycombStatPlot, "add_honeycomb",
+                            lambda self, ax, **kw: called.append(True))
+        HoneycombStatPlot(data2, overlay="swarm").plot()
+        assert not called
+
+
+# ─────────────────────────────────────────────
+# 11. Large groups & edge values
 # ─────────────────────────────────────────────
 
 class TestEdgeCases:

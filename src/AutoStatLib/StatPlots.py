@@ -1,13 +1,230 @@
 from __future__ import annotations
-from typing import Literal, Optional
+from typing import Callable, Literal, Optional
 
+import matplotlib.artist
 import matplotlib.axes
+import matplotlib.collections
 import matplotlib.colors as mcolors
 import matplotlib.colors as color
 import matplotlib.figure
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
+
+
+# Dot overlay layouts accepted by the ``overlay`` argument of the plot classes.
+OVERLAY_LAYOUTS: tuple[str, ...] = ("swarm", "honeycomb", "scatter")
+
+
+class _HoneycombLayout:
+    """
+    Packs the dots of every group onto a honeycomb (hexagonal) lattice.
+
+    Every value is snapped to the nearest lattice row; dots that share a row
+    are placed side by side around the group centre, and neighbouring rows are
+    shifted by half a cell so the hexagons interlock and never overlap.  All
+    dots start at the standard size; if the widest row of any group does not
+    fit into ``max_width`` the size of *all* dots is reduced until it does.
+
+    The packing depends on the final axes size and limits, which are only
+    known when the figure is rendered, so it runs lazily at draw time and is
+    recomputed whenever the axes transform changes (resize, zoom, save dpi).
+    """
+
+    # Pointy-top hexagon with circumradius R: rows are 1.5 R apart and
+    # neighbours within a row are sqrt(3) R (flat-to-flat width) apart.
+    ROW_STEP: float = 1.5
+    COL_STEP: float = float(np.sqrt(3))
+
+    def __init__(
+        self,
+        ax: matplotlib.axes.Axes,
+        groups: list[np.ndarray],
+        centers: list[float],
+        radius_pt: float,
+        max_width: float,
+        gap: float,
+        hexes: matplotlib.collections.PathCollection,
+        lines: Optional[matplotlib.collections.LineCollection] = None,
+    ) -> None:
+        self.ax = ax
+        self.groups = groups
+        self.centers = centers
+        self.max_radius_pt = radius_pt
+        self.max_width = max_width
+        self.gap = gap
+        self.hexes = hexes
+        self.lines = lines
+        # Lattice circumradius (in points) chosen by the last layout pass.
+        self.radius_pt: float = radius_pt
+        self._key: Optional[tuple] = None
+
+    # -- geometry helpers -------------------------------------------------- #
+
+    @staticmethod
+    def _extent(counts: np.ndarray, parity: np.ndarray) -> np.ndarray:
+        """Largest |offset| (in columns) of a row holding ``counts`` dots."""
+        return np.where(parity == 0, counts // 2, (counts - 1) // 2 + 0.5)
+
+    def _rows(self, y_px: np.ndarray, y_ref: float, r_px: float) -> tuple:
+        """
+        Snap values to lattice rows and choose each row's half-cell shift.
+
+        Directly adjacent rows must alternate their shift to interlock.  Each
+        block of adjacent occupied rows may start with either shift, so the
+        one giving the narrower (more centred) block is chosen.
+        """
+        k = np.rint((y_px - y_ref) / (self.ROW_STEP * r_px)).astype(np.int64)
+        rows, inverse, counts = np.unique(k, return_inverse=True, return_counts=True)
+        new_block = np.r_[True, np.diff(rows) > 1]
+        block_id = np.cumsum(new_block) - 1
+        block_start = np.flatnonzero(new_block)
+        pos_in_block = rows - rows[block_start][block_id]
+        worst = [
+            np.maximum.reduceat(self._extent(counts, (pos_in_block + q) % 2), block_start)
+            for q in (0, 1)
+        ]
+        shift = (worst[1] < worst[0]).astype(np.int64)
+        parity = (pos_in_block + shift[block_id]) % 2
+        return k, rows, inverse.ravel(), self._extent(counts, parity), parity, block_id
+
+    def _fits(self, packs: list[tuple], y_ref: float, r_px: float) -> bool:
+        for y_px, _, half_px in packs:
+            if y_px.size:
+                extent = self._rows(y_px, y_ref, r_px)[3]
+                if (extent.max() + 0.5) * self.COL_STEP * r_px > half_px:
+                    return False
+        return True
+
+    def _place(
+        self, y_px: np.ndarray, xc_px: float, y_ref: float, r_px: float
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Return display coordinates of the hexagon centres of one group."""
+        k, rows, inverse, _, parity, block_id = self._rows(y_px, y_ref, r_px)
+        row_px = self.ROW_STEP * r_px
+
+        # Rank of every dot inside its row (stable: keeps the input order).
+        order = np.argsort(inverse, kind="stable")
+        sorted_rows = inverse[order]
+        rank = np.empty_like(inverse)
+        rank[order] = np.arange(inverse.size) - np.searchsorted(sorted_rows, sorted_rows)
+
+        # Fill rows from the centre outwards: 0, +1, -1, +2 ... for unshifted
+        # rows and +.5, -.5, +1.5 ... for shifted ones.  The side that gets the
+        # odd dot out alternates every two rows to avoid a lopsided swarm.
+        p = parity[inverse]
+        side = np.where((rows[inverse] // 2) % 2 == 0, 1.0, -1.0)
+        magnitude = np.where(p == 0, (rank + 1) // 2, rank // 2 + 0.5)
+        first_side = np.where(p == 0, rank % 2 == 1, rank % 2 == 0)
+        offset = magnitude * np.where(first_side, side, -side)
+
+        x_px = xc_px + offset * self.COL_STEP * r_px
+
+        # Blocks of rows separated by empty rows need not share the lattice:
+        # centre each block on the range of its snapping errors (so isolated
+        # values, e.g. discrete levels, sit exactly at their value and no dot
+        # moves more than 0.75 R) while keeping >= 2 R between the facing rows
+        # of consecutive blocks, so they cannot touch.
+        y_lattice = y_ref + k * row_px
+        residual = y_px - y_lattice
+        point_block = block_id[inverse]
+        n_blocks = int(block_id[-1]) + 1
+        res_lo = np.full(n_blocks, np.inf)
+        res_hi = np.full(n_blocks, -np.inf)
+        np.minimum.at(res_lo, point_block, residual)
+        np.maximum.at(res_hi, point_block, residual)
+        block_shift = (res_lo + res_hi) / 2
+        block_first = np.flatnonzero(np.r_[True, np.diff(block_id) > 0])
+        block_last = np.r_[block_first[1:] - 1, rows.size - 1]
+        for b in range(1, n_blocks):
+            gap_px = (rows[block_first[b]] - rows[block_last[b - 1]]) * row_px
+            block_shift[b] = max(block_shift[b], block_shift[b - 1] + 2 * r_px - gap_px)
+
+        return x_px, y_lattice + block_shift[point_block]
+
+    # -- draw-time entry point ---------------------------------------------- #
+
+    def update(self, renderer) -> None:
+        trans = self.ax.transData
+        px_per_pt = float(renderer.points_to_pixels(1.0))
+        key = (
+            tuple(trans.transform([[1.0, 1.0], [2.0, 2.0]]).ravel()),
+            self.ax.get_xscale(),
+            self.ax.get_yscale(),
+            px_per_pt,
+        )
+        if key == self._key:
+            return
+
+        packs: list[tuple] = []
+        for xc, vals in zip(self.centers, self.groups):
+            if not vals.size:
+                packs.append((vals, 0.0, 0.0))
+                continue
+            y_px = trans.transform(np.column_stack([np.full(vals.size, xc), vals]))[:, 1]
+            left, mid, right = trans.transform(
+                [[xc - self.max_width / 2, vals[0]], [xc, vals[0]], [xc + self.max_width / 2, vals[0]]]
+            )[:, 0]
+            packs.append((y_px, mid, min(abs(mid - left), abs(right - mid))))
+
+        y_all = np.concatenate([p[0] for p in packs])
+        half_all = [p[2] for p in packs if p[0].size]
+        if (
+            not y_all.size
+            or px_per_pt <= 0
+            or not np.all(np.isfinite(y_all))
+            or min(half_all) <= 0
+            or not np.all(np.isfinite(half_all))
+        ):
+            return  # degenerate axes (e.g. zero size) — keep the previous layout
+        self._key = key
+        y_ref = float(y_all.min())
+
+        # Largest circumradius not above the standard one that fits every group.
+        r_px = self.max_radius_pt * px_per_pt
+        if not self._fits(packs, y_ref, r_px):
+            n_max = max(p[0].size for p in packs)
+            # Even with every dot in one single row this radius fits:
+            lo = min(half_all) / (self.COL_STEP * (n_max / 2 + 0.5))
+            hi = r_px
+            while hi - lo > 1e-3 * hi:
+                mid_r = 0.5 * (lo + hi)
+                if self._fits(packs, y_ref, mid_r):
+                    lo = mid_r
+                else:
+                    hi = mid_r
+            r_px = lo
+        self.radius_pt = r_px / px_per_pt
+
+        placed_px = [
+            np.column_stack(self._place(y_px, xc_px, y_ref, r_px))
+            if y_px.size
+            else np.empty((0, 2))
+            for y_px, xc_px, _ in packs
+        ]
+        placed = [trans.inverted().transform(xy) if xy.size else xy for xy in placed_px]
+
+        self.hexes.set_offsets(np.concatenate(placed))
+        self.hexes.set_sizes(np.array([(2 * self.radius_pt * (1 - self.gap)) ** 2]))
+        if self.lines is not None:
+            n_pairs = min(len(xy) for xy in placed)
+            self.lines.set_segments(
+                [np.array([xy[j] for xy in placed]) for j in range(n_pairs)]
+            )
+
+
+def _run_before_draw(
+    artist: matplotlib.artist.Artist,
+    callback: Callable,
+) -> None:
+    """Call ``callback(renderer)`` every time ``artist`` is about to be drawn."""
+    original_draw = artist.draw
+
+    def draw(renderer) -> None:
+        callback(renderer)
+        original_draw(renderer)
+
+    setattr(artist, "draw", draw)
 
 
 class Helpers:
@@ -123,8 +340,15 @@ class BaseStatPlot(Helpers):
         figure_scale_factor: float = 1,
         figure_h: float = 4,
         figure_w: float = 0,  # 0 means auto
+        overlay: Optional[str] = None,  # "swarm", "honeycomb", "scatter"; None = plot default
         **kwargs,
     ) -> None:
+
+        if overlay is not None and overlay not in OVERLAY_LAYOUTS:
+            raise ValueError(
+                f"Unknown overlay {overlay!r}; expected one of {OVERLAY_LAYOUTS}"
+            )
+        self.overlay: Optional[str] = overlay
 
         # Sanitise input data — replace empty groups with None; fall back to
         # a dummy two-group dataset so the object is always in a valid state.
@@ -599,6 +823,88 @@ class BaseStatPlot(Helpers):
             zorder=zorder,
         )
 
+    def add_honeycomb(
+        self,
+        ax: matplotlib.axes.Axes,
+        color: str = "dimgrey",
+        alpha: float = 1,
+        markersize: float = 8,
+        max_width: float = 0.8,
+        gap: float = 0.12,
+        linewidth: float = 1.4,
+        zorder: int = 2,
+    ) -> _HoneycombLayout:
+        """
+        Add a honeycomb overlay: every value is drawn as a hexagon packed
+        onto a hexagonal lattice, so the dots tile tightly and never overlap.
+
+        Values are snapped to the nearest lattice row (at most 3/4 of a
+        hexagon away from their true value).  Hexagons keep the standard
+        ``markersize`` (vertex-to-vertex, in points) unless the widest row of
+        a group would exceed ``max_width`` (in x-axis units, the distance
+        between group centres is 1); then all hexagons shrink equally until
+        every group fits.  ``gap`` is the fraction of the size left empty
+        between neighbouring hexagons.
+
+        The layout is computed at draw time, so it stays correct after the
+        axes are resized, re-limited or saved at a different dpi.
+        Returns the layout object; its ``radius_pt`` holds the size in use
+        after the figure has been drawn.
+        """
+        groups = [
+            np.asarray(g if g is not None else [], dtype=float).ravel()
+            for g in self.data_groups
+        ]
+        groups = [g[np.isfinite(g)] for g in groups]
+        centers = [float(i) for i in range(len(groups))]
+        start_xy = np.concatenate(
+            [np.column_stack([np.full(g.size, c), g]) for c, g in zip(centers, groups)]
+        )
+
+        radius_pt = markersize * self.figure_scale_factor / 2
+        hexes = ax.scatter(
+            start_xy[:, 0],
+            start_xy[:, 1],
+            s=(2 * radius_pt * (1 - gap)) ** 2,
+            marker="h",  # pointy-top hexagon: tiles in horizontal rows
+            color=color,
+            alpha=alpha,
+            linewidths=0,
+            zorder=zorder,
+        )
+
+        lines = None
+        if self.dependent:
+            lines = matplotlib.collections.LineCollection(
+                [],
+                colors=color,
+                alpha=alpha * 0.25,
+                linewidths=linewidth * self.figure_scale_factor,
+                zorder=zorder - 1,
+            )
+            ax.add_collection(lines, autolim=False)
+
+        layout = _HoneycombLayout(
+            ax, groups, centers, radius_pt, max_width, gap, hexes, lines
+        )
+        _run_before_draw(hexes, layout.update)
+        if lines is not None:
+            _run_before_draw(lines, layout.update)
+
+        # Same categorical x-range a seaborn swarm overlay would set.
+        ax.set_xlim(-0.5, len(groups) - 0.5)
+        return layout
+
+    def add_overlay(self, ax: matplotlib.axes.Axes, default: str = "swarm") -> None:
+        """Draw the individual values using the layout chosen by ``overlay``."""
+        match self.overlay or default:
+            case "honeycomb":
+                self.add_honeycomb(ax)
+            case "scatter":
+                self.add_scatter(ax)
+            case _:
+                self.add_swarm(ax)
+
     def add_errorbar_sd(
         self,
         ax: matplotlib.axes.Axes,
@@ -923,7 +1229,7 @@ class BarStatPlot(BaseStatPlot):
                 self.add_median_marker(ax, x, linewidth=linewidth)
                 self.add_mean_marker(ax, x, linewidth=linewidth)
                 self.add_errorbar_sd(ax, x, linewidth=linewidth)
-            self.add_swarm(ax)
+            self.add_overlay(ax, default="swarm")
             self.add_significance_bars(ax, linewidth)
             self.add_titles_and_labels(fig, ax)
             self.axes_formatting(ax, linewidth)
@@ -950,7 +1256,7 @@ class ViolinStatPlot(BaseStatPlot):
                 self.add_median_marker(ax, x, linewidth=linewidth)
                 self.add_mean_marker(ax, x, linewidth=linewidth)
                 self.add_errorbar_sd(ax, x, linewidth=linewidth)
-            self.add_swarm(ax)
+            self.add_overlay(ax, default="swarm")
             self.add_significance_bars(ax, linewidth)
             self.add_titles_and_labels(fig, ax)
             self.axes_formatting(ax, linewidth)
@@ -964,7 +1270,7 @@ class BoxStatPlot(BaseStatPlot):
         if not self.error:
             fig, ax = self.setup_figure()
             self.add_boxplot(ax)
-            self.add_swarm(ax)
+            self.add_overlay(ax, default="swarm")
             self.add_significance_bars(ax, linewidth)
             self.add_titles_and_labels(fig, ax)
             self.axes_formatting(ax, linewidth)
@@ -979,7 +1285,7 @@ class ScatterStatPlot(BaseStatPlot):
                 self.add_median_marker(ax, x, linewidth=linewidth)
                 self.add_mean_marker(ax, x, linewidth=linewidth)
                 self.add_errorbar_sd(ax, x, linewidth=linewidth)
-            self.add_scatter(ax)
+            self.add_overlay(ax, default="scatter")
             self.add_significance_bars(ax, linewidth)
             self.add_titles_and_labels(fig, ax)
             self.axes_formatting(ax, linewidth)
@@ -996,7 +1302,31 @@ class SwarmStatPlot(BaseStatPlot):
                 self.add_median_marker(ax, x, linewidth=linewidth)
                 self.add_mean_marker(ax, x, linewidth=linewidth)
                 self.add_errorbar_sd(ax, x, linewidth=linewidth)
-            self.add_swarm(ax)
+            self.add_overlay(ax, default="swarm")
+            self.add_significance_bars(ax, linewidth)
+            self.add_titles_and_labels(fig, ax)
+            self.axes_formatting(ax, linewidth)
+            xmin, xmax = ax.get_xlim()
+            ax.set_xlim(xmin - 0.3, xmax + 0.3)
+
+
+class HoneycombStatPlot(BaseStatPlot):
+    """
+    Mean ± SD and median over a honeycomb overlay: each value is a hexagon
+    packed onto a hexagonal lattice.  Hexagons have a standard size and
+    shrink uniformly only when needed to fit the widest group.
+    The honeycomb overlay is also available on every other plot class via
+    ``overlay="honeycomb"``.
+    """
+
+    def plot(self, linewidth: float = 1.8) -> None:  # type: ignore[override]
+        if not self.error:
+            fig, ax = self.setup_figure()
+            for x in range(len(self.data_groups)):
+                self.add_median_marker(ax, x, linewidth=linewidth)
+                self.add_mean_marker(ax, x, linewidth=linewidth)
+                self.add_errorbar_sd(ax, x, linewidth=linewidth)
+            self.add_overlay(ax, default="honeycomb")
             self.add_significance_bars(ax, linewidth)
             self.add_titles_and_labels(fig, ax)
             self.axes_formatting(ax, linewidth)
