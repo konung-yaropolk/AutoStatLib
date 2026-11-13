@@ -1,4 +1,5 @@
 from __future__ import annotations
+import colorsys
 from typing import Callable, Literal, Optional
 
 import matplotlib.artist
@@ -7,6 +8,7 @@ import matplotlib.collections
 import matplotlib.colors as mcolors
 import matplotlib.colors as color
 import matplotlib.figure
+import matplotlib.lines
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
@@ -210,6 +212,207 @@ class _HoneycombLayout:
             n_pairs = min(len(xy) for xy in placed)
             self.lines.set_segments(
                 [np.array([xy[j] for xy in placed]) for j in range(n_pairs)]
+            )
+
+
+class _ScatterLayout:
+    """
+    Random jitter around every group centre without overlapping dots.
+
+    Each value keeps its exact y position; its x position is drawn at random
+    from the part of the jitter band (``centre ± jitter``) where the dot does
+    not touch any dot placed before it.  A group too crowded for that band
+    gets a wider one, up to ``max_width``.  All dots start at the standard
+    size; if any group does not fit even into ``max_width``, the size of
+    *all* dots is reduced until every group fits.
+
+    Like the honeycomb layout it runs lazily at draw time and is recomputed
+    whenever the axes transform changes (resize, zoom, save dpi).  A fixed
+    random seed keeps the jitter identical between redraws.
+    """
+
+    def __init__(
+        self,
+        ax: matplotlib.axes.Axes,
+        groups: list[np.ndarray],
+        centers: list[float],
+        size_pt: float,
+        edge_pt: float,
+        jitter: float,
+        max_width: float,
+        seed: int,
+        dots: matplotlib.lines.Line2D,
+        lines: Optional[matplotlib.collections.LineCollection] = None,
+    ) -> None:
+        self.ax = ax
+        self.groups = groups
+        self.centers = centers
+        self.size_pt = size_pt
+        self.edge_pt = edge_pt
+        self.jitter = jitter
+        self.max_half = max(jitter, max_width / 2)
+        self.seed = seed
+        self.dots = dots
+        self.lines = lines
+        # Size factor (1 = standard size) chosen by the last layout pass.
+        self.scale: float = 1.0
+        self._key: Optional[tuple] = None
+
+    def _place(
+        self,
+        y_px: np.ndarray,
+        xc_px: float,
+        half_px: float,
+        d_px: float,
+        rng: np.random.Generator,
+    ) -> Optional[np.ndarray]:
+        """
+        Return the x display coordinates of one group's dots (centres at least
+        ``d_px`` apart), or None if some dot finds no free spot in the band.
+        """
+        n = y_px.size
+        x_out = np.empty(n)
+        px = np.empty(n)
+        py = np.empty(n)
+        lo_b, hi_b = xc_px - half_px, xc_px + half_px
+        for m, i in enumerate(rng.permutation(n)):
+            y = y_px[i]
+            dy = np.abs(py[:m] - y)
+            near = dy < d_px
+            if not near.any():
+                x = rng.uniform(lo_b, hi_b)
+            else:
+                # x positions blocked by each nearby dot: (x - w, x + w).
+                w = np.sqrt(d_px**2 - dy[near] ** 2)
+                starts = px[:m][near] - w
+                ends = px[:m][near] + w
+                order = np.argsort(starts)
+                segs: list[tuple[float, float]] = []
+                cur = lo_b
+                for s, e in zip(starts[order], ends[order]):
+                    if cur > hi_b:
+                        break
+                    if s > cur:
+                        segs.append((cur, min(s, hi_b)))
+                    cur = max(cur, e)
+                if cur <= hi_b:
+                    segs.append((cur, hi_b))
+                if not segs:
+                    return None
+                seg = np.asarray(segs)
+                cum = np.cumsum(seg[:, 1] - seg[:, 0])
+                if cum[-1] > 0:
+                    u = rng.uniform(0.0, cum[-1])
+                    k = min(int(np.searchsorted(cum, u, side="right")), len(segs) - 1)
+                    x = seg[k, 1] - (cum[k] - u)
+                else:  # only isolated free points are left
+                    x = seg[rng.integers(len(segs)), 0]
+            x_out[i] = x
+            px[m] = x
+            py[m] = y
+        return x_out
+
+    def _place_group(
+        self, gi: int, pack: tuple, d_px: float, half: float
+    ) -> Optional[np.ndarray]:
+        """Place group ``gi`` into a band of ``centre ± half`` (x-axis units)."""
+        y_px, xc_px, px_per_unit = pack
+        # Same seed on every attempt: the result depends only on d and half.
+        rng = np.random.default_rng((self.seed, gi))
+        return self._place(y_px, xc_px, half * px_per_unit, d_px, rng)
+
+    def _fits_widest(self, packs: list[tuple], d_px: float) -> bool:
+        return all(
+            self._place_group(gi, p, d_px, self.max_half) is not None
+            for gi, p in enumerate(packs)
+            if p[0].size
+        )
+
+    def update(self, renderer) -> None:
+        trans = self.ax.transData
+        px_per_pt = float(renderer.points_to_pixels(1.0))
+        key = (
+            tuple(trans.transform([[1.0, 1.0], [2.0, 2.0]]).ravel()),
+            self.ax.get_xscale(),
+            self.ax.get_yscale(),
+            px_per_pt,
+        )
+        if key == self._key:
+            return
+
+        packs: list[tuple] = []
+        for xc, vals in zip(self.centers, self.groups):
+            if not vals.size:
+                packs.append((vals, 0.0, 0.0))
+                continue
+            y_px = trans.transform(np.column_stack([np.full(vals.size, xc), vals]))[:, 1]
+            left, mid, right = trans.transform(
+                [[xc - 1.0, vals[0]], [xc, vals[0]], [xc + 1.0, vals[0]]]
+            )[:, 0]
+            packs.append((y_px, mid, min(abs(mid - left), abs(right - mid))))
+
+        y_all = np.concatenate([p[0] for p in packs])
+        ppu_all = [p[2] for p in packs if p[0].size]
+        if (
+            not y_all.size
+            or px_per_pt <= 0
+            or self.max_half <= 0
+            or not np.all(np.isfinite(y_all))
+            or min(ppu_all) <= 0
+            or not np.all(np.isfinite(ppu_all))
+        ):
+            return  # degenerate axes or zero width — keep the previous layout
+        self._key = key
+
+        # Minimum centre distance of two touching dots (marker + its edge).
+        d_full = (self.size_pt + self.edge_pt) * px_per_pt
+        d_px = d_full
+        if not self._fits_widest(packs, d_px):
+            # A dot blocks at most 2 d of the band, so this distance always fits:
+            lo = min(self.max_half * p[2] / p[0].size for p in packs if p[0].size)
+            hi = d_full
+            while hi - lo > 1e-3 * hi:
+                mid_d = 0.5 * (lo + hi)
+                if self._fits_widest(packs, mid_d):
+                    lo = mid_d
+                else:
+                    hi = mid_d
+            d_px = lo
+        self.scale = d_px / d_full
+
+        # Every group now fits into max_width; use the narrowest band that
+        # fits, starting from the standard jitter.
+        placed: list[np.ndarray] = []
+        for gi, pack in enumerate(packs):
+            if not pack[0].size:
+                placed.append(pack[0])
+                continue
+            x_px = self._place_group(gi, pack, d_px, self.jitter)
+            if x_px is None:
+                lo_h, hi_h = self.jitter, self.max_half
+                while hi_h - lo_h > 0.01 * hi_h:
+                    mid_h = 0.5 * (lo_h + hi_h)
+                    if self._place_group(gi, pack, d_px, mid_h) is None:
+                        lo_h = mid_h
+                    else:
+                        hi_h = mid_h
+                x_px = self._place_group(gi, pack, d_px, hi_h)
+                assert x_px is not None
+            placed.append(x_px)
+
+        inv = trans.inverted()
+        xy = [
+            inv.transform(np.column_stack([x_px, y_px])) if y_px.size else np.empty((0, 2))
+            for x_px, (y_px, _, _) in zip(placed, packs)
+        ]
+        all_xy = np.concatenate(xy)
+        self.dots.set_data(all_xy[:, 0], all_xy[:, 1])
+        self.dots.set_markersize(self.size_pt * self.scale)
+        self.dots.set_markeredgewidth(self.edge_pt * self.scale)
+        if self.lines is not None:
+            n_pairs = min(len(g) for g in xy)
+            self.lines.set_segments(
+                [np.array([g[j] for g in xy]) for j in range(n_pairs)]
             )
 
 
@@ -649,32 +852,92 @@ class BaseStatPlot(Helpers):
     def add_scatter(
         self,
         ax: matplotlib.axes.Axes,
-        color: str = "k",
-        alpha: float = 0.5,
+        color: str = "dimgrey",
+        alpha: float = 1,
         marker: str = "o",
         markersize: float = 8,
-        linewidth: float = 1.2,
+        linewidth: float = 1.4,
         zorder: int = 2,
-    ) -> None:
-        # Generate all jitter offsets with NumPy at once instead of Python loops.
-        rng = np.random.default_rng()
-        spread_pool: list[np.ndarray] = [
-            i + rng.uniform(-0.10, 0.10, size=len(g))
-            for i, g in enumerate(self.data_groups)
-        ]
+        jitter: float = 0.10,
+        max_width: float = 0.8,
+    ) -> _ScatterLayout:
+        """
+        Add a scatter overlay: every value is drawn at its exact y position
+        with a random x jitter of up to ``jitter`` (x-axis units, the distance
+        between group centres is 1) around its group centre.
 
-        for i, data in enumerate(self.transpose(self.data_groups)):
-            ax.plot(
-                self.transpose([list(t) for t in spread_pool])[i],
-                data,
-                color=color,
-                alpha=alpha,
-                marker=marker,
-                markersize=markersize * self.figure_scale_factor,
-                linewidth=linewidth * self.figure_scale_factor,
-                linestyle="-" if self.dependent else "",
+        Dots never overlap: each one is jittered only into the free part of
+        the band.  A group too crowded for ``± jitter`` spreads out wider, up
+        to ``max_width``; if it still does not fit, all dots shrink equally
+        (from the standard ``markersize``) until every group fits.  Paired
+        samples are connected with lines.
+
+        The layout is computed at draw time, so it stays correct after the
+        axes are resized, re-limited or saved at a different dpi.
+        Returns the layout object; its ``scale`` holds the size factor in use
+        after the figure has been drawn.
+        """
+        groups = [
+            np.asarray(g if g is not None else [], dtype=float).ravel()
+            for g in self.data_groups
+        ]
+        groups = [g[np.isfinite(g)] for g in groups]
+        centers = [float(i) for i in range(len(groups))]
+
+        # Fixed seed: random jitter per plot, but stable between redraws.
+        rng = np.random.default_rng()
+        seed = int(rng.integers(2**32))
+        # Initial positions (plain jitter) give the same autoscaled x-range.
+        start_xy = np.concatenate(
+            [
+                np.column_stack([c + rng.uniform(-jitter, jitter, size=g.size), g])
+                for c, g in zip(centers, groups)
+            ]
+        )
+
+        lines = None
+        if self.dependent:
+            lines = matplotlib.collections.LineCollection(
+                [],
+                colors=color,
+                alpha=alpha * 0.25,
+                linewidths=linewidth * self.figure_scale_factor,
                 zorder=zorder - 1,
             )
+            ax.add_collection(lines, autolim=False)
+
+        # Same look as the seaborn swarm overlay: filled dots with a dark
+        # grey edge (60 % of the fill lightness, as seaborn computes it).
+        edge_lum = colorsys.rgb_to_hls(*mcolors.to_rgb(color))[1] * 0.6
+        (dots,) = ax.plot(
+            start_xy[:, 0],
+            start_xy[:, 1],
+            alpha=alpha,
+            marker=marker,
+            markersize=markersize * self.figure_scale_factor,
+            markerfacecolor=color,
+            markeredgecolor=(edge_lum, edge_lum, edge_lum),
+            markeredgewidth=linewidth * self.figure_scale_factor,
+            linestyle="",
+            zorder=zorder,
+        )
+
+        layout = _ScatterLayout(
+            ax,
+            groups,
+            centers,
+            markersize * self.figure_scale_factor,
+            linewidth * self.figure_scale_factor,
+            jitter,
+            max_width,
+            seed,
+            dots,
+            lines,
+        )
+        _run_before_draw(dots, layout.update)
+        if lines is not None:
+            _run_before_draw(lines, layout.update)
+        return layout
 
     def add_swarm(
         self,
